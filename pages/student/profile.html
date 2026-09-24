@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Profile - Internship Management Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#eef2ff', 600: '#4f46e5', 700: '#4338ca' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex h-screen overflow-hidden">
+
+  <!-- Sidebar Component -->
+  <aside id="student-sidebar-root"></aside>
+
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <!-- Topbar Component -->
+    <header id="student-topbar-root"></header>
+
+    <main id="student-profile-container" class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      
+      <!-- Profile Header Card -->
+      <div class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+          <img id="profile-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80" alt="Avatar" class="w-24 h-24 rounded-2xl object-cover border-2 border-indigo-500 shadow-md" />
+          <div class="space-y-1">
+            <div class="flex items-center gap-3 flex-wrap">
+              <h1 id="profile-name" class="text-2xl font-bold font-heading text-slate-900 dark:text-white">Mehedi Hasan</h1>
+              <span class="px-3 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-bold">
+                Student ID: <span id="profile-id">2022000000101</span>
+              </span>
+            </div>
+            <p class="text-sm font-semibold text-slate-600 dark:text-slate-300">
+              <span id="profile-dept">Computer Science & Engineering</span> • <span id="profile-univ">University CSE Department</span>
+            </p>
+            <p class="text-xs text-slate-400 flex items-center gap-4 pt-1">
+              <span><i class="fa-solid fa-location-dot text-rose-500 mr-1"></i><span id="profile-location">Dhaka, Bangladesh</span></span>
+              <span><i class="fa-regular fa-envelope text-indigo-500 mr-1"></i><span id="profile-email">mehedi.cse@university.edu.bd</span></span>
+              <span><i class="fa-solid fa-phone text-emerald-500 mr-1"></i><span id="profile-phone">+880 1712-345678</span></span>
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+          <a href="edit-profile.html" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/25 transition flex items-center gap-2">
+            <i class="fa-regular fa-pen-to-square"></i> Edit Profile
+          </a>
+          <a href="resume.html" class="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition flex items-center gap-1.5">
+            <i class="fa-regular fa-file-pdf text-rose-500"></i> Resume
+          </a>
+        </div>
+      </div>
+
+      <!-- Main Profile Body Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Bio, Academic Details, Skills, Languages, Socials -->
+        <div class="lg:col-span-4 space-y-6">
+          <!-- Bio -->
+          <div class="p-6 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+            <h3 class="font-bold text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400">About Me</h3>
+            <p id="profile-bio" class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Enthusiastic Computer Science undergraduate specializing in full-stack web architectures and distributed systems.
+            </p>
+          </div>
+
+          <!-- Academic Summary -->
+          <div class="p-6 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+            <h3 class="font-bold text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400">Academic Overview</h3>
+            <div class="space-y-2.5 text-xs">
+              <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-700">
+                <span class="text-slate-500">Current Semester</span>
+                <span id="profile-semester" class="font-bold text-slate-900 dark:text-white">7th Semester</span>
+              </div>
+              <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-700">
+                <span class="text-slate-500">Cumulative CGPA</span>
+                <span id="profile-cgpa" class="font-bold text-emerald-600 dark:text-emerald-400">3.85 / 4.00</span>
+              </div>
+              <div class="flex justify-between py-1.5">
+                <span class="text-slate-500">Expected Graduation</span>
+                <span id="profile-grad-year" class="font-bold text-slate-900 dark:text-white">December 2026</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Technical Skills -->
+          <div class="p-6 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+            <h3 class="font-bold text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400">Technical Skills</h3>
+            <div id="profile-skills-container" class="flex flex-wrap gap-2">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Languages -->
+          <div class="p-6 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+            <h3 class="font-bold text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400">Languages</h3>
+            <div id="profile-languages-container" class="flex flex-wrap gap-2">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Social Links -->
+          <div class="p-6 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+            <h3 class="font-bold text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400">Online Profiles</h3>
+            <div class="space-y-2 text-xs">
+              <a id="profile-github" href="#" target="_blank" class="flex items-center gap-2.5 text-slate-700 dark:text-slate-300 hover:text-indigo-600 transition">
+                <i class="fa-brands fa-github text-base w-5"></i> GitHub Repository
+              </a>
+              <a id="profile-linkedin" href="#" target="_blank" class="flex items-center gap-2.5 text-slate-700 dark:text-slate-300 hover:text-indigo-600 transition">
+                <i class="fa-brands fa-linkedin text-base w-5 text-blue-600"></i> LinkedIn Network
+              </a>
+              <a id="profile-portfolio" href="#" target="_blank" class="flex items-center gap-2.5 text-slate-700 dark:text-slate-300 hover:text-indigo-600 transition">
+                <i class="fa-solid fa-globe text-base w-5 text-indigo-500"></i> Personal Portfolio
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Education Timeline, Projects, Certifications -->
+        <div class="lg:col-span-8 space-y-6">
+          
+          <!-- Education Timeline -->
+          <div class="p-6 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-base text-slate-900 dark:text-white">Education History</h3>
+              <i class="fa-solid fa-graduation-cap text-indigo-500"></i>
+            </div>
+            <div id="profile-education-container" class="pt-2">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Featured Projects -->
+          <div class="p-6 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-base text-slate-900 dark:text-white">Featured Projects</h3>
+              <i class="fa-solid fa-code text-cyan-500"></i>
+            </div>
+            <div id="profile-projects-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Certifications -->
+          <div class="p-6 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-base text-slate-900 dark:text-white">Certifications & Honors</h3>
+              <i class="fa-solid fa-award text-amber-500"></i>
+            </div>
+            <div id="profile-certs-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <script src="../../js/main.js"></script>
+  <script src="../../js/ui.js"></script>
+  <script src="../../js/student.js"></script>
+</body>
+</html>

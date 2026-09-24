@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Login - Internship Management Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#eef2ff', 600: '#4f46e5', 700: '#4338ca' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col justify-between">
+
+  <!-- Minimal Nav -->
+  <header class="py-6 px-6 max-w-7xl mx-auto w-full flex items-center justify-between">
+    <a href="../../index.html" class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold">
+        <i class="fa-solid fa-graduation-cap"></i>
+      </div>
+      <span class="text-xl font-bold font-heading text-slate-900 dark:text-white">INTERN<span class="text-indigo-600">PORTAL</span></span>
+    </a>
+    <div class="flex items-center gap-3">
+      <button class="theme-toggle-btn p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">
+        <i class="fa-regular fa-moon dark:hidden"></i>
+        <i class="fa-regular fa-sun hidden dark:block text-amber-400"></i>
+      </button>
+      <a href="../company/login.html" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">Switch to Company Portal &rarr;</a>
+    </div>
+  </header>
+
+  <!-- Login Box -->
+  <main class="flex-1 flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-8 shadow-xl">
+      <div class="text-center mb-8">
+        <div class="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-3 text-xl">
+          <i class="fa-solid fa-user-graduate"></i>
+        </div>
+        <h1 class="text-2xl font-bold font-heading text-slate-900 dark:text-white">Student Sign In</h1>
+        <p class="text-xs text-slate-500 mt-1">Access your applications, resume, and scheduled interviews</p>
+      </div>
+
+      <!-- Quick Demo Login Button -->
+      <div class="mb-6 p-3.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-indigo-900 dark:text-indigo-200">Demo Student Account</p>
+          <p class="text-[11px] text-indigo-700 dark:text-indigo-400">Mehedi Hasan (mehedi.cse@university.edu.bd)</p>
+        </div>
+        <button type="button" onclick="handleDemoLogin('student')" class="px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 shadow-sm transition">
+          Auto Fill
+        </button>
+      </div>
+
+      <!-- Google Sign In Option -->
+      <button type="button" onclick="handleGoogleSignIn()" class="w-full py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-sm flex items-center justify-center gap-2.5 transition mb-5">
+        <svg class="w-4 h-4" viewBox="0 0 24 24">
+          <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"/>
+          <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5.1 3.7-8.8z"/>
+          <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.1-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15.2c0 2.8.7 5.5 1.9 7.8l3.7-2.9z"/>
+          <path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16.5C3.7 20.4 7.5 23.5 12 23.5z"/>
+        </svg>
+        <span>Continue with University Google Account</span>
+      </button>
+
+      <div class="relative flex py-2 items-center mb-5">
+        <div class="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
+        <span class="flex-shrink mx-3 text-[11px] text-slate-400 uppercase font-semibold">Or sign in with email</span>
+        <div class="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
+      </div>
+
+      <form id="student-login-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Student Email or ID</label>
+          <input type="email" id="login-email" required placeholder="mehedi.cse@university.edu.bd" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Password</label>
+            <a href="../forgot-password.html?role=student" class="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">Forgot?</a>
+          </div>
+          <input type="password" id="login-password" required placeholder="Enter your password" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+
+        <div class="flex items-center justify-between text-xs pt-1">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked class="rounded text-indigo-600 focus:ring-indigo-500" />
+            <span class="text-slate-600 dark:text-slate-400">Remember me</span>
+          </label>
+          <a href="../verify-email.html" class="text-[11px] text-slate-400 hover:text-indigo-600">Verify email?</a>
+        </div>
+
+        <button type="submit" id="login-submit-btn" class="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/25 transition flex items-center justify-center gap-2">
+          <span>Sign In to Dashboard</span>
+          <i class="fa-solid fa-arrow-right text-xs"></i>
+        </button>
+      </form>
+
+      <div class="mt-6 text-center text-xs text-slate-500">
+        Don't have an account yet?
+        <a href="register.html" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">Register as Student</a>
+      </div>
+    </div>
+  </main>
+
+  <!-- Simple Footer -->
+  <footer class="py-6 text-center text-xs text-slate-400 border-t border-slate-200 dark:border-slate-800">
+    © 2026 Internship Management Portal • University CSE Project
+  </footer>
+
+  <script src="../../js/main.js"></script>
+  <script src="../../js/supabase-client.js"></script>
+  <script src="../../js/ui.js"></script>
+  <script>
+    function handleDemoLogin(role) {
+      document.getElementById('login-email').value = 'mehedi.cse@university.edu.bd';
+      document.getElementById('login-password').value = 'student12345';
+      showToast('Verified student credentials loaded!', 'info');
+    }
+
+    async function handleGoogleSignIn() {
+      showToast('Initiating University Google OAuth...', 'info');
+      try {
+        const result = await DB.loginWithGoogle({
+          email: 'mehedi.hasan.scholar@university.edu.bd',
+          name: 'Mehedi Hasan',
+          picture: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'
+        }, 'student');
+
+        if (result.error) {
+          showToast(result.error, 'error');
+          return;
+        }
+
+        showToast('Google Sign-In Verified! Redirecting...', 'success');
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 800);
+      } catch (err) {
+        showToast('Failed to sign in with Google.', 'error');
+      }
+    }
+
+    document.getElementById('student-login-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const btn = document.getElementById('login-submit-btn');
+
+      if (!email || !password) {
+        showToast('Please fill in both email and password.', 'warning');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Authenticating...';
+
+      try {
+        const result = await DB.login(email, password, 'student');
+        if (result.error) {
+          showToast(result.error, 'error');
+          btn.disabled = false;
+          btn.innerHTML = '<span>Sign In to Dashboard</span> <i class="fa-solid fa-arrow-right text-xs"></i>';
+          return;
+        }
+
+        showToast(`Welcome back, ${result.user?.name || 'Student'}!`, 'success');
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 700);
+      } catch (err) {
+        showToast('Authentication network failure. Try again.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<span>Sign In to Dashboard</span> <i class="fa-solid fa-arrow-right text-xs"></i>';
+      }
+    });
+  </script>
+</body>
+</html>

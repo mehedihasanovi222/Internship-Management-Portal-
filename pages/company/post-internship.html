@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Post New Internship - Internship Management Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#eef2ff', 600: '#4f46e5', 700: '#4338ca' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex h-screen overflow-hidden">
+
+  <!-- Company Sidebar Component -->
+  <aside id="company-sidebar-root"></aside>
+
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <!-- Company Topbar Component -->
+    <header id="company-topbar-root"></header>
+
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold font-heading text-slate-900 dark:text-white">Post New Internship</h1>
+          <p class="text-xs text-slate-500">Publish a verified opening to receive applications from university students</p>
+        </div>
+        <a href="my-internships.html" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          View My Postings
+        </a>
+      </div>
+
+      <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 sm:p-8 shadow-sm">
+        <form id="post-internship-form" class="space-y-6">
+          
+          <!-- Basic Info -->
+          <div>
+            <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-4 pb-2 border-b border-slate-100 dark:border-slate-700">
+              Position Details
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Internship Job Title *</label>
+                <input type="text" id="post-title" required placeholder="e.g. Backend Node.js Engineering Intern" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Category *</label>
+                <select id="post-category" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <option value="Software & Development">Software & Development</option>
+                  <option value="Data & AI">Data & AI</option>
+                  <option value="Cybersecurity">Cybersecurity</option>
+                  <option value="Design">UI/UX Design</option>
+                  <option value="Business">Business / Product</option>
+                  <option value="Marketing">Growth & Marketing</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Target Department</label>
+                <input type="text" id="post-dept" placeholder="CSE / Software Engineering" value="Computer Science & Engineering" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Number of Openings *</label>
+                <input type="number" id="post-openings" min="1" max="50" value="2" required class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Work Mode *</label>
+                <select id="post-workmode" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <option value="Hybrid">Hybrid</option>
+                  <option value="Remote">Remote</option>
+                  <option value="On-site">On-site</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Logistics & Compensation -->
+          <div>
+            <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-4 pb-2 border-b border-slate-100 dark:border-slate-700">
+              Compensation & Logistics
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Location / City *</label>
+                <input type="text" id="post-location" required placeholder="Dhaka, Bangladesh" value="Dhaka, Bangladesh" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Duration *</label>
+                <select id="post-duration" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <option value="3 Months">3 Months</option>
+                  <option value="6 Months" selected>6 Months</option>
+                  <option value="1 Year">1 Year</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Employment Type</label>
+                <select id="post-type" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <option value="Full-time">Full-time</option>
+                  <option value="Part-time">Part-time</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Monthly Stipend (BDT) *</label>
+                <input type="number" id="post-stipend" required value="25000" min="5000" step="1000" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Application Deadline *</label>
+                <input type="date" id="post-deadline" required value="2026-09-30" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Required Skills (comma separated) *</label>
+                <input type="text" id="post-skills" required placeholder="Node.js, PostgreSQL, Docker, Redis, REST APIs" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Description, Responsibilities & Qualifications -->
+          <div>
+            <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-4 pb-2 border-b border-slate-100 dark:border-slate-700">
+              Role Scope & Requirements
+            </h3>
+            
+            <div class="space-y-4">
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Detailed Description *</label>
+                  <span id="desc-char-count" class="text-[11px] text-slate-400">0 / 1000</span>
+                </div>
+                <textarea id="post-desc" rows="4" required placeholder="Describe the team, mission, and day-to-day internship experience..." class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Key Responsibilities (one per line) *</label>
+                <textarea id="post-responsibilities" rows="3" required placeholder="Build scalable microservices&#10;Write unit tests&#10;Participate in sprint planning" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Candidate Qualifications (one per line) *</label>
+                <textarea id="post-qualifications" rows="3" required placeholder="Enrolled in B.Sc in CSE / Software Engineering&#10;Proficiency in JavaScript or TypeScript&#10;Familiarity with Git and relational databases" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Benefits checkboxes -->
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-2">Perks & Benefits</label>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <label class="flex items-center gap-2 cursor-pointer p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+                <input type="checkbox" name="benefits" value="Certificate of Completion" checked class="rounded text-indigo-600 focus:ring-indigo-500" />
+                <span class="text-slate-700 dark:text-slate-300">Completion Certificate</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+                <input type="checkbox" name="benefits" value="Full-time Job Conversion" checked class="rounded text-indigo-600 focus:ring-indigo-500" />
+                <span class="text-slate-700 dark:text-slate-300">PPO / Job Offer</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+                <input type="checkbox" name="benefits" value="Senior Mentorship" checked class="rounded text-indigo-600 focus:ring-indigo-500" />
+                <span class="text-slate-700 dark:text-slate-300">1-on-1 Mentorship</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+                <input type="checkbox" name="benefits" value="Snacks & Subsidized Lunch" checked class="rounded text-indigo-600 focus:ring-indigo-500" />
+                <span class="text-slate-700 dark:text-slate-300">Free Food / Snacks</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Buttons -->
+          <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-700">
+            <button type="button" id="save-draft-btn" class="px-5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              Save as Draft
+            </button>
+            <button type="submit" class="px-8 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/25 transition">
+              Publish Live Internship 🚀
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="../../js/main.js"></script>
+  <script src="../../js/ui.js"></script>
+  <script src="../../js/company.js"></script>
+</body>
+</html>

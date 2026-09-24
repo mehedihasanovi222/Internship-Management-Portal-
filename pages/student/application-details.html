@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Application Details & Status - Internship Management Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#eef2ff', 600: '#4f46e5', 700: '#4338ca' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex h-screen overflow-hidden">
+
+  <!-- Sidebar Component -->
+  <aside id="student-sidebar-root"></aside>
+
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <!-- Topbar Component -->
+    <header id="student-topbar-root"></header>
+
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      
+      <!-- Back Breadcrumbs -->
+      <div class="flex items-center gap-2 text-xs font-semibold text-slate-500">
+        <a href="applications.html" class="hover:text-indigo-600 transition flex items-center gap-1">
+          <i class="fa-solid fa-arrow-left text-[10px]"></i> Back to My Applications
+        </a>
+        <span>/</span>
+        <span class="text-slate-800 dark:text-slate-200">Timeline & Review Status</span>
+      </div>
+
+      <!-- Application Details Container -->
+      <div id="student-application-details-container">
+        <!-- Populated by js/applications.js -->
+      </div>
+
+    </main>
+  </div>
+
+  <script src="../../js/main.js"></script>
+  <script src="../../js/ui.js"></script>
+  <script src="../../js/applications.js"></script>
+</body>
+</html>

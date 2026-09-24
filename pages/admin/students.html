@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Directory - University Placement Authority</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            amber: { 50: '#fffbeb', 500: '#f59e0b', 600: '#d97706' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-100 flex h-screen overflow-hidden font-sans">
+
+  <!-- Admin Sidebar Component -->
+  <aside id="admin-sidebar-root"></aside>
+
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <!-- Admin Topbar Component -->
+    <header id="admin-topbar-root"></header>
+
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      
+      <!-- Page Title -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-black font-heading tracking-tight text-zinc-900 dark:text-white">University Student Placement Pool</h1>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400">View enrolled undergraduates, monitor verified resumes, CGPA standing, and placement progress.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button onclick="showToast('Exporting student directory CSV...', 'info')" class="px-4 py-2.5 rounded-full bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 font-bold text-xs transition flex items-center gap-2">
+            <i class="fa-solid fa-file-arrow-down"></i> Export Student Roster
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters & Search -->
+      <div class="bento-card p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="relative w-full sm:w-80">
+          <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-zinc-400 text-xs">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </span>
+          <input type="text" id="search-student" oninput="filterStudents()" placeholder="Search by name, ID, or skills..." class="w-full pl-9 pr-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-amber-500" />
+        </div>
+
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <select id="department-filter" onchange="filterStudents()" class="px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-700 dark:text-zinc-300">
+            <option value="all">All Departments</option>
+            <option value="CSE">Computer Science & Eng (CSE)</option>
+            <option value="SWE">Software Engineering (SWE)</option>
+            <option value="DSAI">Data Science & AI</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Student Table -->
+      <div class="bento-card p-6 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="border-b border-zinc-200 dark:border-zinc-800 text-zinc-400 font-bold uppercase tracking-wider">
+                <th class="pb-3">Student Candidate</th>
+                <th class="pb-3">Student ID</th>
+                <th class="pb-3">Department</th>
+                <th class="pb-3">CGPA</th>
+                <th class="pb-3">Resume Status</th>
+                <th class="pb-3">Applications</th>
+                <th class="pb-3">Account Status</th>
+                <th class="pb-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/60" id="student-table-body">
+              <tr>
+                <td colspan="8" class="py-8 text-center text-zinc-400">
+                  <i class="fa-solid fa-circle-notch fa-spin text-base text-amber-500 mb-2 block"></i>
+                  Loading student database...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="../../js/main.js"></script>
+  <script src="../../js/ui.js"></script>
+  <script src="../../js/admin.js"></script>
+  <script>
+    let allStudents = [];
+    let allApplications = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadStudents();
+    });
+
+    async function loadStudents() {
+      const [students, applications] = await Promise.all([
+        AdminApp.fetchStudents(),
+        DB.fetchApplications()
+      ]);
+      allStudents = students;
+      allApplications = applications;
+      renderStudents(students);
+    }
+
+    function renderStudents(list) {
+      const tbody = document.getElementById('student-table-body');
+      if (!tbody) return;
+
+      if (!list || list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="py-8 text-center text-zinc-400">
+              No students found in the university database.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = list.map(student => {
+        const studentApps = allApplications.filter(a => a.studentId === student.id || a.studentEmail === student.email);
+        const hasPlaced = studentApps.some(a => a.status === 'Selected');
+        const isSuspended = student.status === 'suspended';
+
+        return `
+          <tr class="student-row" data-dept="${student.department || 'CSE'}">
+            <td class="py-3.5">
+              <div class="flex items-center gap-3">
+                <img src="${student.photo || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}" alt="${student.name}" class="w-9 h-9 rounded-full object-cover border border-zinc-200 dark:border-zinc-800" />
+                <div>
+                  <p class="font-bold text-zinc-900 dark:text-white">${student.name}</p>
+                  <p class="text-[11px] text-zinc-400">${student.email}</p>
+                </div>
+              </div>
+            </td>
+            <td class="py-3.5 font-mono text-zinc-500">${student.studentId || 'ID-TBD'}</td>
+            <td class="py-3.5 font-semibold text-zinc-700 dark:text-zinc-300">${student.department || 'CSE'}</td>
+            <td class="py-3.5 font-bold text-emerald-500">${student.cgpa ? student.cgpa + ' / 4.00' : '3.80 / 4.00'}</td>
+            <td class="py-3.5">
+              ${student.resumeUrl ? `
+                <a href="${student.resumeUrl}" target="_blank" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 inline-flex items-center gap-1">
+                  <i class="fa-solid fa-file-pdf"></i> Uploaded
+                </a>
+              ` : `
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-500/10 text-zinc-400 border border-zinc-500/20">Not Uploaded</span>
+              `}
+            </td>
+            <td class="py-3.5 font-bold text-indigo-500">${studentApps.length} Submissions</td>
+            <td class="py-3.5">
+              <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                isSuspended ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20' :
+                hasPlaced ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
+                'bg-cyan-500/10 text-cyan-500 border border-cyan-500/20'
+              }">${isSuspended ? 'Suspended' : hasPlaced ? 'Placed 🎉' : 'Active Candidate'}</span>
+            </td>
+            <td class="py-3.5 text-right">
+              <div class="flex items-center justify-end gap-1.5">
+                <button onclick="toggleUserStatus('student', '${student.id}', '${isSuspended ? 'active' : 'suspended'}')" class="px-2.5 py-1 rounded-lg border text-xs font-bold transition ${
+                  isSuspended ? 'border-emerald-500/40 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/20' : 'border-rose-500/30 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20'
+                }">
+                  ${isSuspended ? 'Activate' : 'Suspend'}
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function toggleUserStatus(role, id, newStatus) {
+      if (confirm(`Change this student's account status to '${newStatus}'?`)) {
+        const ok = await AdminApp.updateUserStatus(role, id, newStatus);
+        if (ok) await loadStudents();
+      }
+    }
+
+    function filterStudents() {
+      const q = document.getElementById('search-student').value.toLowerCase();
+      const dept = document.getElementById('department-filter').value;
+
+      const filtered = allStudents.filter(s => {
+        const matchesQ = !q || s.name.toLowerCase().includes(q) || (s.email && s.email.toLowerCase().includes(q)) || (s.studentId && s.studentId.toLowerCase().includes(q));
+        const matchesDept = dept === 'all' || (s.department && s.department.toUpperCase().includes(dept));
+        return matchesQ && matchesDept;
+      });
+      renderStudents(filtered);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Applications - Internship Management Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#eef2ff', 600: '#4f46e5', 700: '#4338ca' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex h-screen overflow-hidden">
+
+  <!-- Sidebar Component -->
+  <aside id="student-sidebar-root"></aside>
+
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <!-- Topbar Component -->
+    <header id="student-topbar-root"></header>
+
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      
+      <!-- Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-bold font-heading text-slate-900 dark:text-white">Application Pipeline</h1>
+          <p class="text-xs text-slate-500">Track company screening stages, review feedbacks, and offer status</p>
+        </div>
+        <a href="internships.html" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/25 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-magnifying-glass"></i> Find New Openings
+        </a>
+      </div>
+
+      <!-- Status Filter Tabs -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-2 text-xs font-bold no-scrollbar">
+        <button class="student-app-tab px-4 py-2 rounded-xl bg-indigo-600 text-white transition whitespace-nowrap shadow-sm" data-status="All">
+          All Applications
+        </button>
+        <button class="student-app-tab px-4 py-2 rounded-xl bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition whitespace-nowrap" data-status="Applied">
+          Applied
+        </button>
+        <button class="student-app-tab px-4 py-2 rounded-xl bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition whitespace-nowrap" data-status="Reviewed">
+          Reviewed
+        </button>
+        <button class="student-app-tab px-4 py-2 rounded-xl bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition whitespace-nowrap" data-status="Shortlisted">
+          Shortlisted
+        </button>
+        <button class="student-app-tab px-4 py-2 rounded-xl bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition whitespace-nowrap" data-status="Interview">
+          Interview
+        </button>
+        <button class="student-app-tab px-4 py-2 rounded-xl bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition whitespace-nowrap" data-status="Selected">
+          Selected / Offers
+        </button>
+        <button class="student-app-tab px-4 py-2 rounded-xl bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition whitespace-nowrap" data-status="Rejected">
+          Rejected
+        </button>
+      </div>
+
+      <!-- Application Cards Container -->
+      <div id="student-applications-container" class="space-y-4">
+        <!-- Rendered by js/applications.js -->
+      </div>
+
+    </main>
+  </div>
+
+  <script src="../../js/main.js"></script>
+  <script src="../../js/ui.js"></script>
+  <script src="../../js/applications.js"></script>
+</body>
+</html>

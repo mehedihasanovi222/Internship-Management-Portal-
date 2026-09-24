@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Corporate Partners - University Placement Cell</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            amber: { 50: '#fffbeb', 500: '#f59e0b', 600: '#d97706' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-100 flex h-screen overflow-hidden font-sans">
+
+  <!-- Admin Sidebar Component -->
+  <aside id="admin-sidebar-root"></aside>
+
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <!-- Admin Topbar Component -->
+    <header id="admin-topbar-root"></header>
+
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      
+      <!-- Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-black font-heading tracking-tight text-zinc-900 dark:text-white">Corporate Recruitment Partners</h1>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400">Review, verify, and monitor verified industry employers hiring from university graduates.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button onclick="showToast('Corporate partnership invitation dispatched via email', 'success')" class="px-4 py-2.5 rounded-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shadow-md transition flex items-center gap-2">
+            <i class="fa-solid fa-plus"></i> Invite Corporate Partner
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters & Search -->
+      <div class="bento-card p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="relative w-full sm:w-80">
+          <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-zinc-400 text-xs">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </span>
+          <input type="text" id="search-company" oninput="filterCompanies()" placeholder="Search by company name, HR, or industry..." class="w-full pl-9 pr-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-amber-500" />
+        </div>
+
+        <div class="flex items-center gap-2 w-full sm:w-auto" id="filter-tabs-container">
+          <button onclick="setFilter('all', this)" class="company-tab-btn active px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950">All (<span id="count-all">0</span>)</button>
+          <button onclick="setFilter('verified', this)" class="company-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white">Verified (<span id="count-verified">0</span>)</button>
+          <button onclick="setFilter('pending', this)" class="company-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white">Pending Approval (<span id="count-pending">0</span>)</button>
+        </div>
+      </div>
+
+      <!-- Companies Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="companies-container">
+        <div class="col-span-full py-16 text-center text-zinc-400 text-xs">
+          <i class="fa-solid fa-circle-notch fa-spin text-2xl text-amber-500 mb-3 block"></i>
+          Loading corporate partners from database...
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="../../js/main.js"></script>
+  <script src="../../js/ui.js"></script>
+  <script src="../../js/admin.js"></script>
+  <script>
+    let allCompanies = [];
+    let currentFilter = 'all';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadCompanies();
+    });
+
+    async function loadCompanies() {
+      const container = document.getElementById('companies-container');
+      const companies = await AdminApp.fetchCompanies();
+      allCompanies = companies;
+
+      const verifiedCount = companies.filter(c => c.verified).length;
+      const pendingCount = companies.filter(c => !c.verified).length;
+
+      document.getElementById('count-all').innerText = companies.length;
+      document.getElementById('count-verified').innerText = verifiedCount;
+      document.getElementById('count-pending').innerText = pendingCount;
+
+      renderCompanies(companies);
+    }
+
+    function renderCompanies(list) {
+      const container = document.getElementById('companies-container');
+      if (!list || list.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-16 text-center bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-8">
+            <i class="fa-solid fa-building text-3xl text-zinc-400 mb-3 block"></i>
+            <h3 class="text-sm font-bold text-zinc-800 dark:text-white">No Corporate Partners Found</h3>
+            <p class="text-xs text-zinc-500 mt-1">When companies register on the portal, they will appear here for verification.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = list.map(comp => {
+        const isVerified = comp.verified;
+        const statusType = isVerified ? 'verified' : 'pending';
+        return `
+          <div class="bento-card p-6 flex flex-col justify-between space-y-4 ${!isVerified ? 'border-amber-500/30' : ''}" data-status="${statusType}">
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex items-center gap-3.5">
+                <img src="${comp.logo || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100'}" alt="${comp.name}" class="w-12 h-12 rounded-xl object-cover border border-zinc-200 dark:border-zinc-800" />
+                <div>
+                  <h3 class="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                    ${comp.name}
+                    ${isVerified ? `
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">Verified Partner</span>
+                    ` : `
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">Pending Verification</span>
+                    `}
+                  </h3>
+                  <p class="text-xs text-zinc-500">${comp.industry || 'Technology'} &bull; ${comp.location || 'Dhaka'}</p>
+                </div>
+              </div>
+              <span class="text-xs font-mono font-bold text-zinc-400">${comp.internshipsCount || 0} Postings</span>
+            </div>
+
+            <div class="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 text-xs space-y-1">
+              <p><span class="text-zinc-400">HR Contact:</span> <strong class="text-zinc-800 dark:text-zinc-200">${comp.hrName || 'HR Lead'}</strong></p>
+              <p><span class="text-zinc-400">Email:</span> <span class="font-mono text-indigo-500">${comp.email || 'hr@company.com'}</span></p>
+              <p><span class="text-zinc-400">Status:</span> <strong class="${isVerified ? 'text-emerald-500' : 'text-amber-500'}">${isVerified ? 'Authorized to Post' : 'Awaiting Admin Approval'}</strong></p>
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800">
+              <span class="text-xs text-zinc-400 font-mono">ID: ${comp.id}</span>
+              <div class="flex items-center gap-2">
+                ${!isVerified ? `
+                  <button onclick="handleVerify('${comp.id}', true)" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-check"></i> Approve Partner
+                  </button>
+                  <button onclick="handleVerify('${comp.id}', false, 'suspended')" class="px-3.5 py-1.5 rounded-xl bg-rose-600/10 hover:bg-rose-600/20 text-rose-500 font-bold text-xs border border-rose-500/20 transition">
+                    Decline
+                  </button>
+                ` : `
+                  <button onclick="handleVerify('${comp.id}', false, 'suspended')" class="px-3 py-1.5 rounded-lg border border-rose-300 dark:border-rose-900/60 text-xs font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition">
+                    Suspend Access
+                  </button>
+                `}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function handleVerify(id, verified, status = 'active') {
+      const ok = await AdminApp.verifyCompany(id, verified, status);
+      if (ok) {
+        await loadCompanies();
+      }
+    }
+
+    function filterCompanies() {
+      const q = document.getElementById('search-company').value.toLowerCase();
+      const filtered = allCompanies.filter(c => {
+        const matchesQuery = !q || c.name.toLowerCase().includes(q) || (c.hrName && c.hrName.toLowerCase().includes(q)) || (c.industry && c.industry.toLowerCase().includes(q));
+        const matchesTab = currentFilter === 'all' || (currentFilter === 'verified' && c.verified) || (currentFilter === 'pending' && !c.verified);
+        return matchesQuery && matchesTab;
+      });
+      renderCompanies(filtered);
+    }
+
+    function setFilter(status, btn) {
+      currentFilter = status;
+      document.querySelectorAll('.company-tab-btn').forEach(b => {
+        b.className = 'company-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white';
+      });
+      if (btn) btn.className = 'company-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-zinc-950';
+      filterCompanies();
+    }
+  </script>
+</body>
+</html>

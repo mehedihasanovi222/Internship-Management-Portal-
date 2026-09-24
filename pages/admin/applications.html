@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Placement Audit & Tracking - University Placement Authority</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            amber: { 50: '#fffbeb', 500: '#f59e0b', 600: '#d97706' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-100 flex h-screen overflow-hidden font-sans">
+
+  <!-- Admin Sidebar Component -->
+  <aside id="admin-sidebar-root"></aside>
+
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <!-- Admin Topbar Component -->
+    <header id="admin-topbar-root"></header>
+
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      
+      <!-- Page Title -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-black font-heading tracking-tight text-zinc-900 dark:text-white">University Placement Tracker & Audit</h1>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400">Complete audit log of student applications, interview rounds, offers, and department placement statistics.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button onclick="showToast('Official University Placement Report (PDF) Generated', 'success')" class="px-4 py-2.5 rounded-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shadow-md transition flex items-center gap-2">
+            <i class="fa-solid fa-file-pdf"></i> Generate Dean's Report
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Metrics -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bento-card p-4">
+          <p class="text-xs text-zinc-400 font-medium mb-1">Total Submissions</p>
+          <p id="count-total" class="text-2xl font-black font-heading text-zinc-900 dark:text-white">0</p>
+        </div>
+        <div class="bento-card p-4">
+          <p class="text-xs text-zinc-400 font-medium mb-1">Shortlisted</p>
+          <p id="count-shortlisted" class="text-2xl font-black font-heading text-cyan-500">0</p>
+        </div>
+        <div class="bento-card p-4">
+          <p class="text-xs text-zinc-400 font-medium mb-1">Interviews Scheduled</p>
+          <p id="count-interviews" class="text-2xl font-black font-heading text-purple-500">0</p>
+        </div>
+        <div class="bento-card p-4">
+          <p class="text-xs text-zinc-400 font-medium mb-1">Final Offers Selected</p>
+          <p id="count-selected" class="text-2xl font-black font-heading text-emerald-500">0</p>
+        </div>
+      </div>
+
+      <!-- Full Audit Table -->
+      <div class="bento-card p-6 overflow-hidden">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 mb-4 border-b border-zinc-100 dark:border-zinc-800">
+          <div class="relative w-full sm:w-80">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-zinc-400 text-xs">
+              <i class="fa-solid fa-magnifying-glass"></i>
+            </span>
+            <input type="text" id="search-app" oninput="filterApps()" placeholder="Search applicant, job, or company..." class="w-full pl-9 pr-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-amber-500" />
+          </div>
+
+          <div class="flex items-center gap-2">
+            <select id="status-filter" onchange="filterApps()" class="px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-700 dark:text-zinc-300">
+              <option value="all">All Stages</option>
+              <option value="Applied">Applied</option>
+              <option value="Shortlisted">Shortlisted</option>
+              <option value="Interview">Interview</option>
+              <option value="Selected">Selected</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="border-b border-zinc-200 dark:border-zinc-800 text-zinc-400 font-bold uppercase tracking-wider">
+                <th class="pb-3">App ID</th>
+                <th class="pb-3">Student Name</th>
+                <th class="pb-3">Internship Position</th>
+                <th class="pb-3">Corporate Partner</th>
+                <th class="pb-3">Applied Date</th>
+                <th class="pb-3">Current Status</th>
+                <th class="pb-3 text-right">Resume</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/60" id="apps-table-body">
+              <tr>
+                <td colspan="7" class="py-8 text-center text-zinc-400">
+                  <i class="fa-solid fa-circle-notch fa-spin text-base text-amber-500 mb-2 block"></i>
+                  Loading student application audit log...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="../../js/main.js"></script>
+  <script src="../../js/ui.js"></script>
+  <script src="../../js/admin.js"></script>
+  <script>
+    let allApplications = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadApplications();
+    });
+
+    async function loadApplications() {
+      const apps = await DB.fetchApplications();
+      allApplications = apps;
+
+      document.getElementById('count-total').innerText = apps.length;
+      document.getElementById('count-shortlisted').innerText = apps.filter(a => a.status === 'Shortlisted').length;
+      document.getElementById('count-interviews').innerText = apps.filter(a => a.status === 'Interview').length;
+      document.getElementById('count-selected').innerText = apps.filter(a => a.status === 'Selected').length;
+
+      renderApplications(apps);
+    }
+
+    function renderApplications(list) {
+      const tbody = document.getElementById('apps-table-body');
+      if (!tbody) return;
+
+      if (!list || list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="py-8 text-center text-zinc-400">
+              No applications recorded in the database.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = list.map(app => `
+        <tr class="app-row" data-status="${app.status}">
+          <td class="py-3.5 font-mono text-zinc-400">#${app.id ? app.id.substring(0, 8) : 'APP'}</td>
+          <td class="py-3.5 font-bold text-zinc-900 dark:text-white">${app.studentName}</td>
+          <td class="py-3.5 text-zinc-700 dark:text-zinc-300">${app.jobTitle}</td>
+          <td class="py-3.5 font-semibold text-indigo-500">${app.company}</td>
+          <td class="py-3.5 text-zinc-400">${app.appliedDate || 'Recent'}</td>
+          <td class="py-3.5">
+            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${
+              app.status === 'Selected' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
+              app.status === 'Shortlisted' ? 'bg-cyan-500/10 text-cyan-500 border border-cyan-500/20' :
+              app.status === 'Interview' ? 'bg-purple-500/10 text-purple-500 border border-purple-500/20' :
+              app.status === 'Rejected' ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20' :
+              'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+            }">${app.status}</span>
+          </td>
+          <td class="py-3.5 text-right">
+            ${app.resumeUrl ? `
+              <a href="${app.resumeUrl}" target="_blank" class="px-2.5 py-1 rounded-lg border border-indigo-500/30 text-indigo-500 font-bold hover:bg-indigo-50 dark:hover:bg-indigo-950/20 transition inline-flex items-center gap-1">
+                <i class="fa-solid fa-file-pdf"></i> CV
+              </a>
+            ` : '<span class="text-zinc-400">-</span>'}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function filterApps() {
+      const q = document.getElementById('search-app').value.toLowerCase();
+      const status = document.getElementById('status-filter').value;
+
+      const filtered = allApplications.filter(a => {
+        const matchesQ = !q || (a.studentName && a.studentName.toLowerCase().includes(q)) || (a.jobTitle && a.jobTitle.toLowerCase().includes(q)) || (a.company && a.company.toLowerCase().includes(q));
+        const matchesStatus = status === 'all' || a.status === status;
+        return matchesQ && matchesStatus;
+      });
+      renderApplications(filtered);
+    }
+  </script>
+</body>
+</html>

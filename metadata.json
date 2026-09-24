@@ -1,0 +1,6 @@
+{
+  "name": "Internship Management Portal",
+  "description": "A comprehensive, modern full-stack university internship and placement management platform featuring specialized portals for Students, Companies, and Administrators with cloud-hosted backend APIs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Sign In - University Central Placement Cell</title>
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body class="min-h-full bg-zinc-950 text-zinc-100 flex flex-col justify-between selection:bg-amber-500 selection:text-black font-sans">
+
+  <!-- Top Simple Navigation -->
+  <header class="w-full border-b border-zinc-800 bg-zinc-900/60 backdrop-blur-md px-6 py-4 flex items-center justify-between">
+    <a href="../../index.html" class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white text-xl shadow-lg shadow-amber-500/20">
+        <i class="fa-solid fa-shield-halved"></i>
+      </div>
+      <div>
+        <span class="font-black text-base tracking-tight font-heading text-white">INTERN<span class="text-amber-500">PORTAL</span></span>
+        <span class="block text-[10px] uppercase font-bold tracking-widest text-amber-400">University Placement Authority</span>
+      </div>
+    </a>
+
+    <div class="flex items-center gap-3">
+      <a href="../../index.html" class="px-3.5 py-1.5 rounded-full text-xs font-bold text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-700 transition flex items-center gap-1.5">
+        <i class="fa-solid fa-arrow-left text-[11px]"></i> Back to Portal
+      </a>
+      <button onclick="toggleTheme()" class="w-8 h-8 rounded-full border border-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white">
+        <i class="fa-solid fa-circle-half-stroke text-xs"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Login Card -->
+  <main class="flex-1 flex items-center justify-center p-4 sm:p-8">
+    <div class="w-full max-w-md bg-zinc-900/90 border border-zinc-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+      <!-- Glow background -->
+      <div class="absolute -top-24 -right-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold mb-3">
+          <i class="fa-solid fa-lock"></i> Central Admin Access
+        </div>
+        <h1 class="text-2xl font-black font-heading text-white tracking-tight">University Placement Cell</h1>
+        <p class="text-xs text-zinc-400 mt-1">Authorized access for Department Directors, Deans, and Placement Officers.</p>
+      </div>
+
+      <!-- Quick Demo Access Banner -->
+      <div class="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3">
+        <i class="fa-solid fa-key text-amber-400 text-base mt-0.5"></i>
+        <div class="flex-1">
+          <p class="text-xs font-bold text-amber-300">Quick 1-Click Administrator Access</p>
+          <p class="text-[11px] text-zinc-400 mt-0.5">Demo Email: <span class="font-mono text-white">admin@university.edu.bd</span></p>
+          <button type="button" onclick="fillAdminCredentials()" class="mt-2 text-xs font-bold px-3 py-1 rounded-lg bg-amber-500 text-zinc-950 hover:bg-amber-400 transition shadow-sm">
+            Auto-fill Credentials
+          </button>
+        </div>
+      </div>
+
+      <!-- Form -->
+      <form id="admin-login-form" onsubmit="handleAdminLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1.5">Official Admin Email</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-zinc-500 text-xs">
+              <i class="fa-solid fa-envelope"></i>
+            </span>
+            <input type="email" id="admin-email" required placeholder="admin@university.edu.bd" value="admin@university.edu.bd" class="w-full pl-9 pr-4 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-amber-500 transition" />
+          </div>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider text-zinc-400">Security Password</label>
+            <a href="../forgot-password.html?role=admin" class="text-[11px] text-amber-400/80 hover:underline">Forgot password?</a>
+          </div>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-zinc-500 text-xs">
+              <i class="fa-solid fa-lock"></i>
+            </span>
+            <input type="password" id="admin-password" required placeholder="Enter admin password" class="w-full pl-9 pr-10 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-amber-500 transition" />
+            <button type="button" onclick="togglePassVisibility()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-zinc-500 hover:text-zinc-300">
+              <i class="fa-solid fa-eye text-xs" id="pass-icon"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" id="admin-submit-btn" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 font-bold text-xs shadow-lg shadow-amber-500/20 transition flex items-center justify-center gap-2">
+          <span>Authenticate & Open Admin Console</span>
+          <i class="fa-solid fa-arrow-right text-[11px]"></i>
+        </button>
+      </form>
+
+      <!-- Switch Role Footer Links -->
+      <div class="mt-8 pt-6 border-t border-zinc-800/80 flex items-center justify-between text-xs text-zinc-400">
+        <a href="../student/login.html" class="hover:text-indigo-400 flex items-center gap-1 transition">
+          <i class="fa-solid fa-graduation-cap"></i> Student Login
+        </a>
+        <a href="../company/login.html" class="hover:text-cyan-400 flex items-center gap-1 transition">
+          <i class="fa-solid fa-building"></i> Company Login
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer Notice -->
+  <footer class="text-center py-4 text-xs text-zinc-500 border-t border-zinc-900">
+    <p>University Central Placement & Internship Administration Portal &copy; 2026</p>
+  </footer>
+
+  <script src="../../js/main.js"></script>
+  <script src="../../js/supabase-client.js"></script>
+  <script>
+    function fillAdminCredentials() {
+      document.getElementById('admin-email').value = 'admin@university.edu.bd';
+      document.getElementById('admin-password').value = 'admin2026';
+      showToast('Admin credentials filled!', 'info');
+    }
+
+    function togglePassVisibility() {
+      const input = document.getElementById('admin-password');
+      const icon = document.getElementById('pass-icon');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fa-solid fa-eye-slash text-xs';
+      } else {
+        input.type = 'password';
+        icon.className = 'fa-solid fa-eye text-xs';
+      }
+    }
+
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('admin-email').value.trim();
+      const password = document.getElementById('admin-password').value;
+      const btn = document.getElementById('admin-submit-btn');
+
+      if (!email || !password) {
+        showToast('Please enter both admin email and password.', 'warning');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Verifying Credentials...';
+
+      try {
+        const result = await DB.login(email, password, 'admin');
+        if (result.error) {
+          showToast(result.error, 'error');
+          btn.disabled = false;
+          btn.innerHTML = '<span>Authenticate & Open Admin Console</span> <i class="fa-solid fa-arrow-right text-[11px]"></i>';
+          return;
+        }
+
+        showToast('Authenticated as Central Administrator', 'success');
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 600);
+      } catch (err) {
+        showToast('Authentication network failed. Please retry.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<span>Authenticate & Open Admin Console</span> <i class="fa-solid fa-arrow-right text-[11px]"></i>';
+      }
+    }
+  </script>
+</body>
+</html>

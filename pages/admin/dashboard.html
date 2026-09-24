@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Central Placement Authority - Admin Command Center</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            amber: { 50: '#fffbeb', 500: '#f59e0b', 600: '#d97706' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-100 flex h-screen overflow-hidden font-sans">
+
+  <!-- Admin Sidebar Component (Injected by ui.js) -->
+  <aside id="admin-sidebar-root"></aside>
+
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <!-- Admin Topbar Component (Injected by ui.js) -->
+    <header id="admin-topbar-root"></header>
+
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      
+      <!-- Bento Hero Banner -->
+      <div class="bento-card p-6 sm:p-8 bg-gradient-to-r from-zinc-900 via-zinc-900 to-amber-950/70 text-white border-zinc-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl">
+        <div class="space-y-3">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold backdrop-blur-md">
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            <span>University Placement & Internship Command Center</span>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-black font-heading tracking-tight">
+            Academic Session <span class="text-amber-400">2026-2027</span> Overview 🏛️
+          </h1>
+          <p class="text-xs sm:text-sm text-zinc-300 max-w-xl leading-relaxed">
+            Centralized administration for university students, corporate hiring partners, and internship placement verification.
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <button onclick="openBroadcastModal()" class="px-4 py-2.5 rounded-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shadow-lg shadow-amber-500/20 transition flex items-center gap-2">
+            <i class="fa-solid fa-bullhorn"></i> Broadcast Notice
+          </button>
+          <a href="companies.html" class="px-4 py-2.5 rounded-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs border border-zinc-700 transition flex items-center gap-2">
+            <i class="fa-solid fa-building-circle-check text-amber-400"></i> Verify Partners
+          </a>
+        </div>
+      </div>
+
+      <!-- Cloud Infrastructure Status Card -->
+      <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center font-bold text-base">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">Cloud Run Production Server Active</span>
+              <span class="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-500 text-[10px] font-bold">Global Port 3000</span>
+            </div>
+            <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Full-stack backend endpoints serving REST APIs & persistent JSON store globally.</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 text-xs font-mono text-zinc-400">
+          <span class="px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">Uptime: 99.98%</span>
+          <span class="px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">Node/Express v4</span>
+        </div>
+      </div>
+
+      <!-- Bento 6 Metrics Row -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div class="bento-card p-4">
+          <div class="flex items-center justify-between text-zinc-400 text-xs mb-2 font-medium">
+            <span>Enrolled Students</span>
+            <i class="fa-solid fa-user-graduate text-indigo-500"></i>
+          </div>
+          <p id="stat-students" class="text-2xl font-black font-heading text-zinc-900 dark:text-white">0</p>
+          <span class="text-[11px] font-bold text-emerald-500 flex items-center gap-1 mt-1">
+            <i class="fa-solid fa-users"></i> Live Database
+          </span>
+        </div>
+
+        <div class="bento-card p-4">
+          <div class="flex items-center justify-between text-zinc-400 text-xs mb-2 font-medium">
+            <span>Corporate Partners</span>
+            <i class="fa-solid fa-building text-cyan-500"></i>
+          </div>
+          <p id="stat-companies" class="text-2xl font-black font-heading text-zinc-900 dark:text-white">0</p>
+          <span id="stat-pending-companies-tag" class="text-[11px] font-bold text-amber-500 flex items-center gap-1 mt-1">
+            <i class="fa-solid fa-clock"></i> 0 Pending Review
+          </span>
+        </div>
+
+        <div class="bento-card p-4">
+          <div class="flex items-center justify-between text-zinc-400 text-xs mb-2 font-medium">
+            <span>Active Listings</span>
+            <i class="fa-solid fa-briefcase text-purple-500"></i>
+          </div>
+          <p id="stat-internships" class="text-2xl font-black font-heading text-zinc-900 dark:text-white">0</p>
+          <span class="text-[11px] font-bold text-emerald-500 flex items-center gap-1 mt-1">
+            <i class="fa-solid fa-check-circle"></i> Live Feed
+          </span>
+        </div>
+
+        <div class="bento-card p-4">
+          <div class="flex items-center justify-between text-zinc-400 text-xs mb-2 font-medium">
+            <span>Total Applications</span>
+            <i class="fa-solid fa-file-invoice text-emerald-500"></i>
+          </div>
+          <p id="stat-applications" class="text-2xl font-black font-heading text-zinc-900 dark:text-white">0</p>
+          <span class="text-[11px] font-bold text-indigo-500 flex items-center gap-1 mt-1">
+            <i class="fa-solid fa-bolt"></i> Real Submissions
+          </span>
+        </div>
+
+        <div class="bento-card p-4">
+          <div class="flex items-center justify-between text-zinc-400 text-xs mb-2 font-medium">
+            <span>Placed Candidates</span>
+            <i class="fa-solid fa-award text-amber-500"></i>
+          </div>
+          <p id="stat-placed" class="text-2xl font-black font-heading text-amber-500">0</p>
+          <span id="stat-rate" class="text-[11px] font-bold text-emerald-500 flex items-center gap-1 mt-1">
+            <i class="fa-solid fa-bullseye"></i> 0% Placed
+          </span>
+        </div>
+
+        <div class="bento-card p-4">
+          <div class="flex items-center justify-between text-zinc-400 text-xs mb-2 font-medium">
+            <span>Interviews Held</span>
+            <i class="fa-solid fa-video text-rose-500"></i>
+          </div>
+          <p id="stat-interviews" class="text-2xl font-black font-heading text-zinc-900 dark:text-white">0</p>
+          <span class="text-[11px] font-bold text-zinc-400 flex items-center gap-1 mt-1">
+            <i class="fa-solid fa-calendar"></i> Virtual & Onsite
+          </span>
+        </div>
+      </div>
+
+      <!-- Main Split Content Area -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left 2 Cols: Pending Approvals & Recent Audit -->
+        <div class="lg:col-span-2 space-y-6">
+          
+          <!-- Pending Company Approvals Queue -->
+          <div class="bento-card p-6">
+            <div class="flex items-center justify-between pb-4 mb-4 border-b border-zinc-100 dark:border-zinc-800">
+              <div class="flex items-center gap-2.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                <h2 class="text-base font-black font-heading text-zinc-900 dark:text-white">Corporate Partners Pending Verification</h2>
+              </div>
+              <a href="companies.html" class="text-xs font-bold text-amber-500 hover:text-amber-400">View All Partners &rarr;</a>
+            </div>
+
+            <div class="space-y-3" id="pending-companies-list">
+              <div class="py-6 text-center text-zinc-400 text-xs">
+                <i class="fa-solid fa-circle-notch fa-spin text-base mb-2"></i>
+                <p>Loading pending corporate applications...</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Placement Cell Audit Activity Table -->
+          <div class="bento-card p-6">
+            <div class="flex items-center justify-between pb-4 mb-4 border-b border-zinc-100 dark:border-zinc-800">
+              <h2 class="text-base font-black font-heading text-zinc-900 dark:text-white">Live Student Applications Audit</h2>
+              <a href="applications.html" class="text-xs font-bold text-amber-500 hover:text-amber-400">Full Audit Log &rarr;</a>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="border-b border-zinc-200 dark:border-zinc-800 text-zinc-400 font-bold uppercase tracking-wider">
+                    <th class="pb-3">Candidate</th>
+                    <th class="pb-3">Internship Position</th>
+                    <th class="pb-3">Company</th>
+                    <th class="pb-3">Status</th>
+                    <th class="pb-3 text-right">Resume</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/60" id="audit-table-body">
+                  <tr>
+                    <td colspan="5" class="py-6 text-center text-zinc-400">Loading student applications...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right 1 Col: Department Stats & Placement Funnel -->
+        <div class="space-y-6">
+          <!-- Department Statistics -->
+          <div class="bento-card p-6">
+            <h3 class="text-sm font-black font-heading text-zinc-900 dark:text-white mb-4">Department Placement Rates</h3>
+            <div class="space-y-4">
+              <div>
+                <div class="flex items-center justify-between text-xs font-bold mb-1">
+                  <span>Computer Science & Engineering (CSE)</span>
+                  <span class="text-emerald-500">98.2%</span>
+                </div>
+                <div class="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-2">
+                  <div class="bg-emerald-500 h-2 rounded-full" style="width: 98.2%"></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between text-xs font-bold mb-1">
+                  <span>Software Engineering (SWE)</span>
+                  <span class="text-indigo-500">95.4%</span>
+                </div>
+                <div class="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-2">
+                  <div class="bg-indigo-500 h-2 rounded-full" style="width: 95.4%"></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between text-xs font-bold mb-1">
+                  <span>Data Science & AI (DSAI)</span>
+                  <span class="text-amber-500">94.0%</span>
+                </div>
+                <div class="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-2">
+                  <div class="bg-amber-500 h-2 rounded-full" style="width: 94%"></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between text-xs font-bold mb-1">
+                  <span>Electrical & Computer (ECE)</span>
+                  <span class="text-cyan-500">91.8%</span>
+                </div>
+                <div class="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-2">
+                  <div class="bg-cyan-500 h-2 rounded-full" style="width: 91.8%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions Bento -->
+          <div class="bento-card p-6 space-y-3">
+            <h3 class="text-sm font-black font-heading text-zinc-900 dark:text-white mb-2">Central Placement Tools</h3>
+            <a href="companies.html" class="flex items-center gap-3 p-3 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:border-amber-500 border border-transparent transition">
+              <i class="fa-solid fa-building-circle-check text-cyan-500 text-lg"></i>
+              <div>
+                <p class="text-xs font-bold text-zinc-900 dark:text-white">Corporate Partners Portal</p>
+                <p class="text-[10px] text-zinc-400">Verify MOUs and recruiter contacts</p>
+              </div>
+            </a>
+            <a href="students.html" class="flex items-center gap-3 p-3 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:border-amber-500 border border-transparent transition">
+              <i class="fa-solid fa-user-graduate text-indigo-500 text-lg"></i>
+              <div>
+                <p class="text-xs font-bold text-zinc-900 dark:text-white">Student Placement Directory</p>
+                <p class="text-[10px] text-zinc-400">Audit candidate eligibility & CGPA</p>
+              </div>
+            </a>
+            <a href="settings.html" class="flex items-center gap-3 p-3 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:border-amber-500 border border-transparent transition">
+              <i class="fa-solid fa-sliders text-amber-500 text-lg"></i>
+              <div>
+                <p class="text-xs font-bold text-zinc-900 dark:text-white">Placement Rules & Thresholds</p>
+                <p class="text-[10px] text-zinc-400">Configure cutoff CGPA and deadlines</p>
+              </div>
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <script src="../../js/main.js"></script>
+  <script src="../../js/ui.js"></script>
+  <script src="../../js/admin.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Fetch live metrics
+      const stats = await AdminApp.fetchStats();
+      if (stats) {
+        document.getElementById('stat-students').innerText = stats.students ?? 0;
+        document.getElementById('stat-companies').innerText = stats.companies ?? 0;
+        document.getElementById('stat-internships').innerText = stats.internships ?? 0;
+        document.getElementById('stat-applications').innerText = stats.applications ?? 0;
+        document.getElementById('stat-placed').innerText = stats.placedStudents ?? 0;
+        document.getElementById('stat-rate').innerHTML = `<i class="fa-solid fa-bullseye"></i> ${stats.placementRate || '0%'} Placed`;
+        document.getElementById('stat-interviews').innerText = stats.interviews ?? 0;
+        
+        const pendingTag = document.getElementById('stat-pending-companies-tag');
+        if (pendingTag) {
+          pendingTag.innerHTML = `<i class="fa-solid fa-clock"></i> ${stats.pendingCompanies ?? 0} Pending Review`;
+        }
+      }
+
+      // 2. Fetch pending companies & live applications
+      loadPendingCompanies();
+      loadAuditApplications();
+    });
+
+    async function loadPendingCompanies() {
+      const container = document.getElementById('pending-companies-list');
+      if (!container) return;
+
+      const companies = await AdminApp.fetchCompanies();
+      const pending = companies.filter(c => !c.verified || c.status === 'pending');
+
+      if (pending.length === 0) {
+        container.innerHTML = `
+          <div class="p-6 text-center rounded-2xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 text-zinc-500 text-xs">
+            <i class="fa-solid fa-shield-halved text-emerald-500 text-lg mb-1.5 block"></i>
+            All registered corporate accounts are verified and up-to-date.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = pending.map(comp => `
+        <div class="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="flex items-center gap-3.5">
+            <img src="${comp.logo || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100'}" alt="${comp.name}" class="w-11 h-11 rounded-xl object-cover border border-zinc-300 dark:border-zinc-700" />
+            <div>
+              <h4 class="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                ${comp.name}
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">Pending Verification</span>
+              </h4>
+              <p class="text-[11px] text-zinc-500 dark:text-zinc-400">${comp.hrName || 'HR Lead'} &bull; ${comp.email || 'hr@company.com'} &bull; ${comp.location || 'Dhaka'}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 self-end sm:self-auto">
+            <button onclick="handleApproveCompany('${comp.id}')" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5">
+              <i class="fa-solid fa-check"></i> Approve
+            </button>
+            <button onclick="handleSuspendCompany('${comp.id}')" class="px-3 py-1.5 rounded-xl border border-zinc-300 dark:border-zinc-700 text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition">
+              Reject
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function handleApproveCompany(id) {
+      const ok = await AdminApp.verifyCompany(id, true, 'active');
+      if (ok) {
+        await loadPendingCompanies();
+        const stats = await AdminApp.fetchStats();
+        if (stats) document.getElementById('stat-companies').innerText = stats.companies ?? 0;
+      }
+    }
+
+    async function handleSuspendCompany(id) {
+      if (confirm('Decline verification for this company account?')) {
+        const ok = await AdminApp.verifyCompany(id, false, 'suspended');
+        if (ok) await loadPendingCompanies();
+      }
+    }
+
+    async function loadAuditApplications() {
+      const tbody = document.getElementById('audit-table-body');
+      if (!tbody) return;
+
+      const applications = await DB.fetchApplications();
+      if (!applications || applications.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="py-8 text-center text-zinc-400 text-xs">
+              No student applications submitted yet. Active submissions will appear here for audit in real time.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      const recent = applications.slice(0, 8);
+      tbody.innerHTML = recent.map(app => `
+        <tr>
+          <td class="py-3 font-bold text-zinc-900 dark:text-white">${app.studentName}</td>
+          <td class="py-3 text-zinc-600 dark:text-zinc-300">${app.jobTitle}</td>
+          <td class="py-3 text-indigo-500 font-semibold">${app.company}</td>
+          <td class="py-3">
+            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${
+              app.status === 'Selected' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
+              app.status === 'Shortlisted' ? 'bg-cyan-500/10 text-cyan-500 border border-cyan-500/20' :
+              app.status === 'Interview' ? 'bg-purple-500/10 text-purple-500 border border-purple-500/20' :
+              app.status === 'Rejected' ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20' :
+              'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+            }">${app.status}</span>
+          </td>
+          <td class="py-3 text-right">
+            ${app.resumeUrl ? `<a href="${app.resumeUrl}" target="_blank" class="text-xs font-bold text-indigo-500 hover:underline"><i class="fa-solid fa-file-pdf mr-1"></i>CV</a>` : '<span class="text-zinc-400">-</span>'}
+          </td>
+        </tr>
+      `).join('');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Internship Moderation - University Placement Authority</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            amber: { 50: '#fffbeb', 500: '#f59e0b', 600: '#d97706' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-100 flex h-screen overflow-hidden font-sans">
+
+  <!-- Admin Sidebar Component -->
+  <aside id="admin-sidebar-root"></aside>
+
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <!-- Admin Topbar Component -->
+    <header id="admin-topbar-root"></header>
+
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      
+      <!-- Page Title -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-black font-heading tracking-tight text-zinc-900 dark:text-white">Central Internship Listings Moderation</h1>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400">Review company-submitted job descriptions, verify stipends, feature listings, or unpublish expired posts.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button onclick="showToast('All active listings validated against university standards', 'success')" class="px-4 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition flex items-center gap-2">
+            <i class="fa-solid fa-circle-check"></i> Audit All Posts
+          </button>
+        </div>
+      </div>
+
+      <!-- Listings Table / Grid -->
+      <div class="bento-card p-6">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 mb-4 border-b border-zinc-100 dark:border-zinc-800">
+          <div class="relative w-full sm:w-80">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-zinc-400 text-xs">
+              <i class="fa-solid fa-magnifying-glass"></i>
+            </span>
+            <input type="text" id="search-job" oninput="filterJobs()" placeholder="Search position, company, or skills..." class="w-full pl-9 pr-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-amber-500" />
+          </div>
+          <span id="active-listings-badge" class="text-xs font-bold text-zinc-400">0 Active Listings</span>
+        </div>
+
+        <div class="space-y-3" id="admin-jobs-list">
+          <div class="py-16 text-center text-zinc-400 text-xs">
+            <i class="fa-solid fa-circle-notch fa-spin text-2xl text-amber-500 mb-3 block"></i>
+            Loading live internship listings from database...
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="../../js/main.js"></script>
+  <script src="../../js/ui.js"></script>
+  <script src="../../js/admin.js"></script>
+  <script>
+    let allInternships = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadAdminInternships();
+    });
+
+    async function loadAdminInternships() {
+      const container = document.getElementById('admin-jobs-list');
+      const internships = await AdminApp.fetchInternships();
+      allInternships = internships;
+      document.getElementById('active-listings-badge').innerText = `${internships.length} Active Listings`;
+      renderAdminInternships(internships);
+    }
+
+    function renderAdminInternships(list) {
+      const container = document.getElementById('admin-jobs-list');
+      if (!container) return;
+
+      if (!list || list.length === 0) {
+        container.innerHTML = `
+          <div class="py-16 text-center bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-8">
+            <i class="fa-solid fa-briefcase text-3xl text-zinc-400 mb-3 block"></i>
+            <h3 class="text-sm font-bold text-zinc-800 dark:text-white">No Active Internships Posted</h3>
+            <p class="text-xs text-zinc-500 mt-1">When verified corporate partners publish internships, they will appear here for administrative oversight.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = list.map(item => `
+        <div class="job-item p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <img src="${item.companyLogo || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100'}" alt="${item.company}" class="w-12 h-12 rounded-xl object-cover border border-zinc-200 dark:border-zinc-800" />
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm font-bold text-zinc-900 dark:text-white">${item.title}</h3>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500">Live</span>
+              </div>
+              <p class="text-xs text-zinc-500">${item.company} &bull; ${item.location || 'Dhaka'} &bull; Stipend: ${item.stipend || 'Competitive'} &bull; Deadline: ${item.deadline || 'Rolling'}</p>
+              <div class="flex flex-wrap gap-1.5 mt-2">
+                ${(item.skills || []).map(skill => `<span class="px-2 py-0.5 rounded-md bg-zinc-200 dark:bg-zinc-800 text-[10px] font-mono">${skill}</span>`).join('')}
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 self-end md:self-auto">
+            <a href="../student/internship-details.html?id=${item.id}" target="_blank" class="px-3 py-1.5 rounded-xl border border-zinc-300 dark:border-zinc-700 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:border-amber-500 transition">View Live</a>
+            <button onclick="handleModeratePost('${item.id}', '${item.title.replace(/'/g, "\\'")}')" class="px-3 py-1.5 rounded-xl bg-rose-600/10 hover:bg-rose-600/20 text-rose-500 border border-rose-500/20 text-xs font-bold transition flex items-center gap-1.5">
+              <i class="fa-solid fa-trash"></i> Remove
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function handleModeratePost(id, title) {
+      if (confirm(`Remove internship listing "${title}" from the public portal? This action cannot be undone.`)) {
+        const ok = await AdminApp.deleteInternship(id);
+        if (ok) {
+          await loadAdminInternships();
+        }
+      }
+    }
+
+    function filterJobs() {
+      const q = document.getElementById('search-job').value.toLowerCase();
+      const filtered = allInternships.filter(item => {
+        return !q || item.title.toLowerCase().includes(q) || (item.company && item.company.toLowerCase().includes(q)) || (item.location && item.location.toLowerCase().includes(q));
+      });
+      renderAdminInternships(filtered);
+    }
+  </script>
+</body>
+</html>

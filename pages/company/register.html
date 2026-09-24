@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Company Registration - Internship Management Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#eef2ff', 600: '#4f46e5', 700: '#4338ca' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col justify-between">
+
+  <!-- Header -->
+  <header class="py-6 px-6 max-w-7xl mx-auto w-full flex items-center justify-between">
+    <a href="../../index.html" class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold">
+        <i class="fa-solid fa-graduation-cap"></i>
+      </div>
+      <span class="text-xl font-bold font-heading text-slate-900 dark:text-white">INTERN<span class="text-indigo-600">PORTAL</span></span>
+    </a>
+    <div class="flex items-center gap-3">
+      <button class="theme-toggle-btn p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">
+        <i class="fa-regular fa-moon dark:hidden"></i>
+        <i class="fa-regular fa-sun hidden dark:block text-amber-400"></i>
+      </button>
+      <a href="login.html" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">Already registered? Sign In &rarr;</a>
+    </div>
+  </header>
+
+  <!-- Main Register Box -->
+  <main class="flex-1 flex items-center justify-center p-4 py-8">
+    <div class="w-full max-w-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-8 shadow-xl">
+      <div class="text-center mb-8">
+        <div class="w-12 h-12 rounded-2xl bg-cyan-50 dark:bg-cyan-950 text-cyan-600 dark:text-cyan-400 flex items-center justify-center mx-auto mb-3 text-xl">
+          <i class="fa-solid fa-building-circle-check"></i>
+        </div>
+        <h1 class="text-2xl font-bold font-heading text-slate-900 dark:text-white">Company Registration</h1>
+        <p class="text-xs text-slate-500 mt-1">Hire top-tier Computer Science & Software Engineering talent</p>
+      </div>
+
+      <!-- Google Sign Up Option -->
+      <button type="button" onclick="handleCompanyGoogleSignUp()" class="w-full py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-sm flex items-center justify-center gap-2.5 transition mb-5">
+        <svg class="w-4 h-4" viewBox="0 0 24 24">
+          <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"/>
+          <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5.1 3.7-8.8z"/>
+          <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.1-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15.2c0 2.8.7 5.5 1.9 7.8l3.7-2.9z"/>
+          <path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16.5C3.7 20.4 7.5 23.5 12 23.5z"/>
+        </svg>
+        <span>Sign Up with Corporate Google Account</span>
+      </button>
+
+      <div class="relative flex py-2 items-center mb-5">
+        <div class="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
+        <span class="flex-shrink mx-3 text-[11px] text-slate-400 uppercase font-semibold">Or fill organization details</span>
+        <div class="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
+      </div>
+
+      <form id="company-reg-form" onsubmit="event.preventDefault(); handleCompanyRegister(this);" class="space-y-4">
+        <!-- Company Logo Upload Widget -->
+        <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center gap-4">
+          <div class="relative w-16 h-16 rounded-2xl overflow-hidden border-2 border-cyan-500 shadow-sm shrink-0 bg-white p-1">
+            <img id="creg-logo-preview" src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80" alt="Logo Preview" class="w-full h-full object-contain rounded-xl" />
+          </div>
+          <div class="flex-1 text-xs">
+            <p class="font-bold text-slate-800 dark:text-white">Organization Logo (Max 5MB)</p>
+            <p class="text-slate-500 text-[11px] mt-0.5">High-resolution square brand logo. Stored persistently on server.</p>
+            <div class="mt-2 flex gap-2">
+              <label class="px-3 py-1.5 rounded-lg bg-cyan-600 text-white font-bold text-[11px] cursor-pointer hover:bg-cyan-700 transition">
+                <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Upload Logo
+                <input type="file" id="creg-logo-file" accept="image/png,image/jpeg,image/webp" class="hidden" onchange="previewCompanyLogo(this)" />
+              </label>
+              <button type="button" onclick="resetCompanyLogoPreview()" class="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[11px] hover:bg-slate-100 dark:hover:bg-slate-800">
+                Default
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Company Info -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Company Name *</label>
+            <input type="text" id="creg-name" required placeholder="e.g. Apex Tech Solutions" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Official Website *</label>
+            <input type="url" id="creg-website" required placeholder="https://apextech.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Industry Sector</label>
+            <select id="creg-industry" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500">
+              <option>Software & Cloud Engineering</option>
+              <option>Artificial Intelligence & Data</option>
+              <option>Cybersecurity & Networks</option>
+              <option>Fintech & Banking</option>
+              <option>E-Commerce & Digital</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Company Size</label>
+            <select id="creg-size" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500">
+              <option>10 - 50 Employees</option>
+              <option selected>50 - 200 Employees</option>
+              <option>200 - 1000 Employees</option>
+              <option>1000+ Enterprise</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Headquarters *</label>
+            <input type="text" id="creg-location" required placeholder="Dhaka, Bangladesh" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+          </div>
+        </div>
+
+        <!-- HR / Recruiter Details -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">HR Lead Name *</label>
+            <input type="text" id="creg-hrname" required placeholder="e.g. Farhan Ahmed" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Corporate Email *</label>
+            <input type="email" id="creg-email" required placeholder="hr@apextech.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Contact Phone *</label>
+            <input type="tel" id="creg-phone" required placeholder="+880 1819-000000" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Brief Company Description</label>
+          <textarea id="creg-desc" rows="3" placeholder="Tell students about your engineering teams, tech stack, and workplace culture..." class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Password *</label>
+            <input type="password" id="creg-pw" required placeholder="At least 6 characters" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Confirm Password *</label>
+            <input type="password" id="creg-cpw" required placeholder="Repeat password" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+          </div>
+        </div>
+
+        <div class="pt-2">
+          <label class="flex items-start gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-400">
+            <input type="checkbox" required class="mt-0.5 rounded text-cyan-600 focus:ring-cyan-500" />
+            <span>I confirm that all internship openings will provide fair stipends and comply with university department regulations.</span>
+          </label>
+        </div>
+
+        <button type="submit" class="w-full py-3.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs shadow-md shadow-cyan-600/25 transition">
+          Register Company Account & Start Hiring
+        </button>
+      </form>
+
+      <div class="mt-6 text-center text-xs text-slate-500">
+        Are you a university student?
+        <a href="../student/register.html" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">Register Student Account</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="py-6 text-center text-xs text-slate-400 border-t border-slate-200 dark:border-slate-800">
+    © 2026 Internship Management Portal • University CSE Project
+  </footer>
+
+  <script src="../../js/main.js"></script>
+  <script src="../../js/supabase-client.js"></script>
+  <script src="../../js/ui.js"></script>
+  <script>
+    const DEFAULT_LOGO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80";
+    let selectedLogoFile = null;
+    let selectedLogoUrl = DEFAULT_LOGO;
+
+    function previewCompanyLogo(input) {
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        if (file.size > 5 * 1024 * 1024) {
+          showToast('File exceeds 5MB size limit.', 'warning');
+          input.value = '';
+          return;
+        }
+        selectedLogoFile = file;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('creg-logo-preview').src = e.target.result;
+          selectedLogoUrl = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function resetCompanyLogoPreview() {
+      selectedLogoFile = null;
+      selectedLogoUrl = DEFAULT_LOGO;
+      document.getElementById('creg-logo-preview').src = DEFAULT_LOGO;
+      document.getElementById('creg-logo-file').value = '';
+    }
+
+    async function handleCompanyGoogleSignUp() {
+      showToast('Connecting with Google Workspace...', 'info');
+      try {
+        const result = await DB.loginWithGoogle({
+          email: 'talent.sso@technova.io',
+          name: 'TechNova Global Solutions',
+          picture: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&auto=format&fit=crop&q=80'
+        }, 'company');
+
+        if (result.error) {
+          showToast(result.error, 'error');
+          return;
+        }
+
+        showToast('Company Google SSO Registered! Redirecting...', 'success');
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 800);
+      } catch (err) {
+        showToast('Google Sign Up failed.', 'error');
+      }
+    }
+
+    async function handleCompanyRegister(form) {
+      const pw = document.getElementById('creg-pw').value;
+      const cpw = document.getElementById('creg-cpw').value;
+      if (pw !== cpw) {
+        showToast('Passwords do not match!', 'error');
+        return;
+      }
+      if (pw.length < 6) {
+        showToast('Password must be at least 6 characters long.', 'warning');
+        return;
+      }
+
+      const submitBtn = form.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Registering Organization...';
+
+      let uploadedLogo = selectedLogoUrl;
+      if (selectedLogoFile) {
+        submitBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up fa-bounce mr-2"></i> Uploading Brand Logo...';
+        const uploadRes = await DB.uploadImage(selectedLogoFile);
+        if (uploadRes && uploadRes.url) {
+          uploadedLogo = uploadRes.url;
+        }
+      }
+
+      const companyPayload = {
+        name: document.getElementById('creg-name').value.trim(),
+        tagline: "Pioneering Software Solutions",
+        logo: uploadedLogo,
+        industry: document.getElementById('creg-industry').value,
+        companySize: document.getElementById('creg-size').value,
+        website: document.getElementById('creg-website').value.trim(),
+        email: document.getElementById('creg-email').value.trim(),
+        phone: document.getElementById('creg-phone').value.trim(),
+        location: document.getElementById('creg-location').value.trim(),
+        hrName: document.getElementById('creg-hrname').value.trim(),
+        hrEmail: document.getElementById('creg-email').value.trim(),
+        hrPhone: document.getElementById('creg-phone').value.trim(),
+        password: pw,
+        description: (document.getElementById('creg-desc')?.value || '').trim() || "Innovative technology firm building scalable products."
+      };
+
+      try {
+        const result = await DB.registerCompany(companyPayload);
+        if (result.error) {
+          showToast(result.error, 'error');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = 'Register Company Account & Start Hiring';
+          return;
+        }
+
+        showToast('Company account registered successfully! 🎉', 'success');
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 800);
+      } catch (err) {
+        showToast('Network error during registration.', 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Register Company Account & Start Hiring';
+      }
+    }
+  </script>
+</body>
+</html>
