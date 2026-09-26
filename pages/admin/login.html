@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../../css/style.css">
+  <script src="../../js/auth-guard.js"></script>
 </head>
 <body class="min-h-full bg-zinc-950 text-zinc-100 flex flex-col justify-between selection:bg-amber-500 selection:text-black font-sans">
 
@@ -49,18 +50,6 @@
         <p class="text-xs text-zinc-400 mt-1">Authorized access for Department Directors, Deans, and Placement Officers.</p>
       </div>
 
-      <!-- Quick Demo Access Banner -->
-      <div class="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3">
-        <i class="fa-solid fa-key text-amber-400 text-base mt-0.5"></i>
-        <div class="flex-1">
-          <p class="text-xs font-bold text-amber-300">Quick 1-Click Administrator Access</p>
-          <p class="text-[11px] text-zinc-400 mt-0.5">Demo Email: <span class="font-mono text-white">admin@university.edu.bd</span></p>
-          <button type="button" onclick="fillAdminCredentials()" class="mt-2 text-xs font-bold px-3 py-1 rounded-lg bg-amber-500 text-zinc-950 hover:bg-amber-400 transition shadow-sm">
-            Auto-fill Credentials
-          </button>
-        </div>
-      </div>
-
       <!-- Form -->
       <form id="admin-login-form" onsubmit="handleAdminLogin(event)" class="space-y-4">
         <div>
@@ -69,7 +58,7 @@
             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-zinc-500 text-xs">
               <i class="fa-solid fa-envelope"></i>
             </span>
-            <input type="email" id="admin-email" required placeholder="admin@university.edu.bd" value="admin@university.edu.bd" class="w-full pl-9 pr-4 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-amber-500 transition" />
+            <input type="email" id="admin-email" required placeholder="admin@university.edu.bd" class="w-full pl-9 pr-4 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-amber-500 transition" />
           </div>
         </div>
 
@@ -115,12 +104,6 @@
   <script src="../../js/main.js"></script>
   <script src="../../js/supabase-client.js"></script>
   <script>
-    function fillAdminCredentials() {
-      document.getElementById('admin-email').value = 'admin@university.edu.bd';
-      document.getElementById('admin-password').value = 'admin2026';
-      showToast('Admin credentials filled!', 'info');
-    }
-
     function togglePassVisibility() {
       const input = document.getElementById('admin-password');
       const icon = document.getElementById('pass-icon');

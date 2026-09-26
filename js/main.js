@@ -114,6 +114,46 @@ const SEED_COMPANY = {
   }
 };
 
+// Default Guest Templates (Used when no user is logged in)
+const DEFAULT_GUEST_STUDENT = {
+  id: "guest",
+  name: "Candidate Profile",
+  studentId: "Not Enrolled",
+  email: "",
+  phone: "",
+  location: "Dhaka, Bangladesh",
+  avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80",
+  university: "Department of Computer Science & Engineering",
+  department: "Computer Science & Engineering",
+  semester: "",
+  cgpa: "",
+  graduationYear: "",
+  bio: "Complete your profile to showcase your academic qualifications and project portfolio.",
+  skills: [],
+  languages: [],
+  socials: { github: "", linkedin: "", portfolio: "" },
+  education: [],
+  experience: [],
+  projects: [],
+  certifications: [],
+  resume: null
+};
+
+const DEFAULT_GUEST_COMPANY = {
+  id: "guest-company",
+  name: "Recruiter Organization",
+  tagline: "Corporate Recruitment Portal",
+  industry: "Information Technology",
+  companySize: "10-50 Employees",
+  website: "",
+  email: "",
+  phone: "",
+  location: "Dhaka, Bangladesh",
+  logo: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=200&auto=format&fit=crop&q=80",
+  description: "Enterprise employer hiring talented undergraduate students.",
+  socials: {}
+};
+
 // Dynamic application collections (Synched in real-time with backend database)
 const SEED_APPLICATIONS = [];
 const SEED_COMPANY_APPLICANTS = [];
@@ -124,29 +164,18 @@ const SEED_NOTIFICATIONS = [];
 const DB = {
   // Initialize Database and auto-sync with live backend database
   init() {
-    // Purge old static hardcoded demo arrays if previously cached in browser
-    if (localStorage.getItem('imp_purged_static_demo_data') !== 'v4') {
-      localStorage.removeItem('imp_internships');
-      localStorage.removeItem('imp_applications');
-      localStorage.removeItem('imp_company_applicants');
+    // Purge old static hardcoded demo data and ensure per-visitor isolation
+    if (localStorage.getItem('imp_purged_session_isolation_v8') !== 'done') {
+      localStorage.removeItem('imp_student_profile');
+      localStorage.removeItem('imp_company_profile');
+      localStorage.removeItem('imp_auth');
+      localStorage.removeItem('imp_token');
       localStorage.removeItem('imp_saved_internships');
-      localStorage.setItem('imp_purged_static_demo_data', 'v4');
+      localStorage.setItem('imp_purged_session_isolation_v8', 'done');
     }
 
     if (!localStorage.getItem('imp_internships')) {
       localStorage.setItem('imp_internships', JSON.stringify([]));
-    }
-    if (!localStorage.getItem('imp_student_profile')) {
-      localStorage.setItem('imp_student_profile', JSON.stringify(SEED_STUDENT));
-    }
-    if (!localStorage.getItem('imp_students')) {
-      localStorage.setItem('imp_students', JSON.stringify([SEED_STUDENT]));
-    }
-    if (!localStorage.getItem('imp_company_profile')) {
-      localStorage.setItem('imp_company_profile', JSON.stringify(SEED_COMPANY));
-    }
-    if (!localStorage.getItem('imp_companies')) {
-      localStorage.setItem('imp_companies', JSON.stringify([SEED_COMPANY]));
     }
     if (!localStorage.getItem('imp_applications')) {
       localStorage.setItem('imp_applications', JSON.stringify([]));
@@ -168,7 +197,8 @@ const DB = {
         isLoggedIn: false,
         userType: null,
         userName: '',
-        userEmail: ''
+        userEmail: '',
+        token: null
       }));
     }
 
@@ -179,10 +209,13 @@ const DB = {
   // Real-time synchronization with server REST database
   async syncWithServer() {
     try {
+      const auth = this.getAuth();
+      const headers = auth && auth.token ? { 'Authorization': `Bearer ${auth.token}` } : {};
+
       const [intRes, appRes, statsRes] = await Promise.allSettled([
-        fetch('/api/internships'),
-        fetch('/api/applications'),
-        fetch('/api/stats')
+        fetch('/api/internships', { headers }),
+        fetch('/api/applications', { headers }),
+        fetch('/api/stats', { headers })
       ]);
 
       if (intRes.status === 'fulfilled' && intRes.value.ok) {
@@ -217,8 +250,10 @@ const DB = {
     if (filters.status) params.set('status', filters.status);
 
     try {
+      const auth = this.getAuth();
+      const headers = auth && auth.token ? { 'Authorization': `Bearer ${auth.token}` } : {};
       const url = '/api/internships' + (params.toString() ? `?${params.toString()}` : '');
-      const res = await fetch(url);
+      const res = await fetch(url, { headers });
       if (res.ok) {
         const list = await res.json();
         if (Array.isArray(list)) {
@@ -234,9 +269,13 @@ const DB = {
 
   // Real-Time Company Internship Posting
   async postInternship(postData) {
+    const auth = this.getAuth();
+    const headers = { 'Content-Type': 'application/json' };
+    if (auth && auth.token) headers['Authorization'] = `Bearer ${auth.token}`;
+
     const res = await fetch('/api/internships', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(postData)
     });
     const data = await res.json();
@@ -261,21 +300,39 @@ const DB = {
   },
 
   getStudents() {
-    return JSON.parse(localStorage.getItem('imp_students') || JSON.stringify([SEED_STUDENT]));
+    return JSON.parse(localStorage.getItem('imp_students') || '[]');
   },
   saveStudents(data) {
     localStorage.setItem('imp_students', JSON.stringify(data));
   },
 
   getCompanies() {
-    return JSON.parse(localStorage.getItem('imp_companies') || JSON.stringify([SEED_COMPANY]));
+    return JSON.parse(localStorage.getItem('imp_companies') || '[]');
   },
   saveCompanies(data) {
     localStorage.setItem('imp_companies', JSON.stringify(data));
   },
 
   getStudentProfile() {
-    return JSON.parse(localStorage.getItem('imp_student_profile') || JSON.stringify(SEED_STUDENT));
+    const auth = this.getAuth();
+    const raw = localStorage.getItem('imp_student_profile');
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && (parsed.email || parsed.name)) {
+          return parsed;
+        }
+      } catch (e) {}
+    }
+    if (auth && auth.isLoggedIn && auth.userType === 'student' && auth.userName) {
+      return {
+        ...DEFAULT_GUEST_STUDENT,
+        name: auth.userName,
+        email: auth.userEmail || '',
+        avatar: auth.userAvatar || DEFAULT_GUEST_STUDENT.avatar
+      };
+    }
+    return { ...DEFAULT_GUEST_STUDENT };
   },
   saveStudentProfile(data) {
     localStorage.setItem('imp_student_profile', JSON.stringify(data));
@@ -302,13 +359,34 @@ const DB = {
     const targetId = data.id || data.email;
     fetch(`/api/students/${encodeURIComponent(targetId)}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': auth.token ? `Bearer ${auth.token}` : ''
+      },
       body: JSON.stringify(data)
     }).catch(err => console.warn('Server sync skipped (running local):', err));
   },
 
   getCompanyProfile() {
-    return JSON.parse(localStorage.getItem('imp_company_profile') || JSON.stringify(SEED_COMPANY));
+    const auth = this.getAuth();
+    const raw = localStorage.getItem('imp_company_profile');
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && (parsed.email || parsed.name)) {
+          return parsed;
+        }
+      } catch (e) {}
+    }
+    if (auth && auth.isLoggedIn && auth.userType === 'company' && auth.userName) {
+      return {
+        ...DEFAULT_GUEST_COMPANY,
+        name: auth.userName,
+        email: auth.userEmail || '',
+        logo: auth.userAvatar || DEFAULT_GUEST_COMPANY.logo
+      };
+    }
+    return { ...DEFAULT_GUEST_COMPANY };
   },
   saveCompanyProfile(data) {
     localStorage.setItem('imp_company_profile', JSON.stringify(data));
@@ -328,6 +406,16 @@ const DB = {
       if (data.logo) auth.userAvatar = data.logo;
       this.setAuth(auth);
     }
+
+    const targetId = data.id || data.email;
+    fetch(`/api/companies/${encodeURIComponent(targetId)}`, {
+      method: 'PUT',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': auth.token ? `Bearer ${auth.token}` : ''
+      },
+      body: JSON.stringify(data)
+    }).catch(err => console.warn('Company sync skipped:', err));
   },
 
   // Real Account Registration
@@ -508,6 +596,8 @@ const DB = {
 
   // Dynamic application fetching from backend database
   async fetchApplications(filters = {}) {
+    const auth = this.getAuth();
+    const headers = auth && auth.token ? { 'Authorization': `Bearer ${auth.token}` } : {};
     const params = new URLSearchParams();
     if (filters.studentId) params.set('studentId', filters.studentId);
     if (filters.internshipId) params.set('internshipId', filters.internshipId);
@@ -517,7 +607,7 @@ const DB = {
 
     try {
       const url = '/api/applications' + (params.toString() ? `?${params.toString()}` : '');
-      const res = await fetch(url);
+      const res = await fetch(url, { headers });
       if (res.ok) {
         const list = await res.json();
         if (Array.isArray(list)) {
@@ -534,6 +624,7 @@ const DB = {
 
   // Submit dynamic student application with PDF resume & profile
   async applyForInternship(internshipId, applicationData = {}) {
+    const auth = this.getAuth();
     const student = this.getStudentProfile();
     const payload = {
       internshipId,
@@ -554,9 +645,12 @@ const DB = {
       ...applicationData
     };
 
+    const headers = { 'Content-Type': 'application/json' };
+    if (auth && auth.token) headers['Authorization'] = `Bearer ${auth.token}`;
+
     const res = await fetch('/api/applications', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(payload)
     });
     const data = await res.json();
@@ -573,9 +667,13 @@ const DB = {
 
   // Update application status dynamically (Pending, Shortlisted, Selected, Rejected)
   async updateApplicationStatus(appId, newStatus, note = '') {
+    const auth = this.getAuth();
+    const headers = { 'Content-Type': 'application/json' };
+    if (auth && auth.token) headers['Authorization'] = `Bearer ${auth.token}`;
+
     const res = await fetch(`/api/applications/${encodeURIComponent(appId)}/status`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ status: newStatus, note })
     });
     const data = await res.json();
@@ -726,23 +824,59 @@ const DB = {
   },
 
   getAuth() {
-    return JSON.parse(localStorage.getItem('imp_auth') || JSON.stringify({ isLoggedIn: false, userType: null }));
+    try {
+      const parsed = JSON.parse(localStorage.getItem('imp_auth') || 'null');
+      if (parsed && parsed.isLoggedIn) {
+        if (!parsed.token) parsed.token = localStorage.getItem('imp_token') || null;
+        return parsed;
+      }
+      return { isLoggedIn: false, userType: null, token: null };
+    } catch (e) {
+      return { isLoggedIn: false, userType: null, token: null };
+    }
   },
   setAuth(authObj) {
     localStorage.setItem('imp_auth', JSON.stringify(authObj));
+    if (authObj && authObj.token) {
+      localStorage.setItem('imp_token', authObj.token);
+    } else {
+      localStorage.removeItem('imp_token');
+    }
   },
-  logout() {
-    localStorage.setItem('imp_auth', JSON.stringify({ isLoggedIn: false, userType: null, userName: '', userEmail: '' }));
+  async logout(customRedirect) {
+    if (window.AuthGuard && typeof window.AuthGuard.logout === 'function') {
+      await window.AuthGuard.logout(customRedirect);
+      return;
+    }
+    const token = localStorage.getItem('imp_token');
+    if (token) {
+      try {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ token })
+        });
+      } catch (e) {}
+    }
+    localStorage.removeItem('imp_auth');
+    localStorage.removeItem('imp_token');
+    localStorage.removeItem('imp_student_profile');
+    localStorage.removeItem('imp_company_profile');
+    localStorage.removeItem('imp_saved_internships');
+    sessionStorage.clear();
+    window.location.replace(customRedirect || '../../index.html');
   },
 
   // Verify and sync active session from server
   async syncSession() {
     const auth = this.getAuth();
-    if (!auth || !auth.isLoggedIn) return { authenticated: false };
+    if (!auth || !auth.isLoggedIn || !auth.token) {
+      return { authenticated: false };
+    }
 
     try {
-      const res = await fetch(`/api/auth/me?email=${encodeURIComponent(auth.userEmail || '')}`, {
-        headers: auth.token ? { 'Authorization': `Bearer ${auth.token}` } : {}
+      const res = await fetch(`/api/auth/me`, {
+        headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       if (res.ok) {
         const data = await res.json();
@@ -751,9 +885,13 @@ const DB = {
           if (data.role === 'company') this.saveCompanyProfile(data.user);
           return { authenticated: true, role: data.role, user: data.user };
         }
+      } else if (res.status === 401 || res.status === 403) {
+        // Token revoked or suspended
+        await this.logout();
+        return { authenticated: false };
       }
     } catch (e) {
-      console.warn('Session sync offline, keeping cached profile.');
+      console.warn('Session sync offline:', e);
     }
     return { authenticated: auth.isLoggedIn, role: auth.userType, user: auth };
   },
@@ -762,9 +900,9 @@ const DB = {
   async loginWithGoogle(profileData = {}, role = 'student') {
     try {
       const payload = {
-        email: profileData.email || 'user.google@university.edu',
-        name: profileData.name || 'Verified University Scholar',
-        picture: profileData.picture || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+        email: profileData.email,
+        name: profileData.name || 'Verified Scholar',
+        picture: profileData.picture || '',
         role: role
       };
 
@@ -800,7 +938,7 @@ const DB = {
         });
       }
 
-      return { success: true, role: data.role, user: data.user };
+      return { success: true, role: data.role, user: data.user, token: data.token };
     } catch (err) {
       return { error: 'Network error connecting to Google Auth service.' };
     }
@@ -1095,17 +1233,23 @@ const DB = {
   // Schedule Interview
   async scheduleInterview(interviewData) {
     try {
+      const auth = this.getAuth();
+      const headers = { 'Content-Type': 'application/json' };
+      if (auth && auth.token) headers['Authorization'] = `Bearer ${auth.token}`;
+
       const res = await fetch('/api/interviews', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(interviewData)
       });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to schedule interview.');
       const intvs = this.getInterviews();
       intvs.unshift(data.interview || interviewData);
       this.saveInterviews(intvs);
       return { success: true, interview: data.interview };
     } catch (err) {
+      console.warn('Interview scheduling sync warning:', err);
       interviewData.id = 'intv-' + Date.now();
       const intvs = this.getInterviews();
       intvs.unshift(interviewData);
@@ -1117,9 +1261,13 @@ const DB = {
   // Create Internship
   async createInternship(internshipData) {
     try {
+      const auth = this.getAuth();
+      const headers = { 'Content-Type': 'application/json' };
+      if (auth && auth.token) headers['Authorization'] = `Bearer ${auth.token}`;
+
       const res = await fetch('/api/internships', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(internshipData)
       });
       const data = await res.json();

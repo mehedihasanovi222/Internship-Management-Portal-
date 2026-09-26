@@ -387,12 +387,38 @@ function handleToggleSave(id, btnElement) {
 /**
  * Initialize Single Internship Details Page
  */
-function initInternshipDetails() {
-  const container = document.getElementById('internship-detail-container');
+async function initInternshipDetails() {
+  const container = document.getElementById('internship-details-container') || document.getElementById('internship-detail-container');
   if (!container) return;
 
   const id = getQueryParam('id') || 'int-101';
-  const item = DB.getInternshipById(id) || DB.getInternships()[0];
+  let item = DB.getInternshipById(id);
+
+  if (!item) {
+    try {
+      const res = await fetch(`/api/internships/${id}`);
+      if (res.ok) {
+        item = await res.json();
+      }
+    } catch (e) {
+      console.warn('Could not fetch single internship from API:', e);
+    }
+  }
+
+  if (!item) {
+    const list = DB.getInternships();
+    item = list.find(i => i.id === id) || list[0];
+  }
+
+  if (!item) {
+    container.innerHTML = `
+      <div class="p-8 text-center bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+        <p class="text-sm text-slate-500 mb-4">Internship opportunity not found or has expired.</p>
+        <a href="internships.html" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold">View All Internships</a>
+      </div>
+    `;
+    return;
+  }
 
   const isSaved = DB.isInternshipSaved(item.id);
   const isStudentPortal = window.location.pathname.includes('/student/');

@@ -740,15 +740,19 @@
     }
 
     // Interactive Category & Workplace Selector
-    function selectHomeCategory(categoryName) {
+    async function selectHomeCategory(categoryName) {
       // Update active button state
       const buttons = document.querySelectorAll('.home-cat-btn');
       buttons.forEach(btn => {
         const cat = btn.getAttribute('data-cat');
         if (cat === categoryName) {
           btn.className = "home-cat-btn px-4 py-2.5 rounded-full text-xs font-bold transition bg-indigo-600 text-white shadow-sm flex items-center gap-2";
+          const countBadge = btn.querySelector('span:last-child');
+          if (countBadge) countBadge.className = "px-2 py-0.5 rounded-full bg-white/20 text-[10px]";
         } else {
           btn.className = "home-cat-btn px-4 py-2.5 rounded-full text-xs font-bold transition bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 hover:border-indigo-500 flex items-center gap-2";
+          const countBadge = btn.querySelector('span:last-child');
+          if (countBadge) countBadge.className = "px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-[10px]";
         }
       });
 
@@ -756,67 +760,132 @@
       const grid = document.getElementById('home-workplaces-grid');
       if (!grid) return;
 
-      if (typeof DB === 'undefined') return;
-      const allInternships = DB.getInternships();
-      let matched = allInternships.filter(item => item.category === categoryName);
-
-      if (matched.length === 0) {
-        matched = allInternships.slice(0, 3);
+      // Show sleek loading state if empty
+      if (!grid.children.length || grid.innerHTML.trim() === '') {
+        grid.innerHTML = `
+          <div class="col-span-full flex items-center justify-center py-12 text-zinc-400">
+            <i class="fa-solid fa-circle-notch fa-spin text-2xl text-indigo-500 mr-3"></i>
+            <span class="text-sm font-semibold">Loading verified opportunities...</span>
+          </div>
+        `;
       }
 
-      grid.innerHTML = matched.map(item => `
-        <div class="bento-card p-6 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 flex flex-col justify-between hover-card-lift shadow-sm">
-          <div>
-            <div class="flex items-start justify-between gap-3 mb-4">
-              <div class="flex items-center gap-3">
-                <img src="${item.logo}" alt="${item.company}" class="w-12 h-12 rounded-2xl object-cover border border-zinc-200 dark:border-zinc-700" />
-                <div>
-                  <h4 class="font-bold text-sm text-zinc-900 dark:text-white">${item.company}</h4>
-                  <p class="text-[11px] text-zinc-500 flex items-center gap-1">
-                    <i class="fa-solid fa-location-dot text-[10px]"></i> ${item.location}
-                  </p>
-                </div>
-              </div>
-              <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                item.workMode === 'Remote' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
-                item.workMode === 'Hybrid' ? 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20' :
-                'bg-zinc-500/10 text-zinc-500 border border-zinc-500/20'
-              }">${item.workMode}</span>
-            </div>
+      // Fetch live internships from API with fallback
+      let allInternships = [];
+      try {
+        const res = await fetch('/api/internships');
+        if (res.ok) {
+          allInternships = await res.json();
+          if (typeof DB !== 'undefined' && typeof DB.saveInternships === 'function') {
+            DB.saveInternships(allInternships);
+          }
+        }
+      } catch (err) {
+        console.warn('API fetch warning:', err);
+      }
 
-            <h3 class="font-bold text-base text-zinc-900 dark:text-white mb-2">${item.title}</h3>
-            <p class="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 mb-4 leading-relaxed">${item.description}</p>
+      if (!Array.isArray(allInternships) || allInternships.length === 0) {
+        if (typeof DB !== 'undefined' && typeof DB.getInternships === 'function') {
+          allInternships = DB.getInternships();
+        }
+      }
 
-            <div class="flex flex-wrap gap-1.5 mb-5">
-              ${item.skills.slice(0, 4).map(s => `
-                <span class="px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-700 dark:text-zinc-300">${s}</span>
-              `).join('')}
+      let matched = [];
+      if (Array.isArray(allInternships) && allInternships.length > 0) {
+        const target = (categoryName || '').toLowerCase().trim();
+        matched = allInternships.filter(item => {
+          if (!item || !item.category) return false;
+          const cat = item.category.toLowerCase().trim();
+          if (cat === target) return true;
+          if (target.includes('software') && (cat.includes('software') || cat.includes('dev'))) return true;
+          if (target.includes('data') && (cat.includes('data') || cat.includes('ai') || cat.includes('intelligence'))) return true;
+          if (target.includes('cyber') && cat.includes('cyber')) return true;
+          if (target.includes('design') && (cat.includes('design') || cat.includes('ux') || cat.includes('ui'))) return true;
+          if (target.includes('business') && (cat.includes('business') || cat.includes('pm') || cat.includes('product'))) return true;
+          if (target.includes('growth') || target.includes('marketing')) return cat.includes('growth') || cat.includes('marketing');
+          return cat.includes(target) || target.includes(cat);
+        });
+
+        // If no direct matches for this specific category, show featured or first available
+        if (matched.length === 0) {
+          matched = allInternships.slice(0, 3);
+        }
+      }
+
+      if (!matched || matched.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-12 text-center bg-white dark:bg-zinc-900/60 rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-800 p-8 shadow-sm">
+            <div class="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-500 flex items-center justify-center mx-auto mb-3">
+              <i class="fa-solid fa-briefcase text-xl"></i>
             </div>
+            <h4 class="font-bold text-zinc-900 dark:text-white text-base mb-1">Opportunities in ${categoryName} Updating Soon</h4>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 max-w-md mx-auto mb-5 leading-relaxed">Verified hiring partners regularly post new engineering, product, and data positions.</p>
+            <a href="pages/student/internships.html" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow-sm">
+              <span>Explore All Verified Internships</span>
+              <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </a>
           </div>
+        `;
+        return;
+      }
 
-          <div class="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-2">
+      grid.innerHTML = matched.map(item => {
+        const skillsList = Array.isArray(item.skills) ? item.skills : (typeof item.skills === 'string' ? item.skills.split(',') : []);
+        const logoUrl = item.logo || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80';
+        const workMode = item.workMode || 'Hybrid';
+        const workModeClass = workMode === 'Remote' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
+          workMode === 'Hybrid' ? 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20' :
+          'bg-zinc-500/10 text-zinc-500 border border-zinc-500/20';
+
+        return `
+          <div class="bento-card p-6 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-3xl flex flex-col justify-between hover-card-lift shadow-sm">
             <div>
-              <p class="text-[10px] text-zinc-400 uppercase font-bold">Stipend</p>
-              <p class="text-xs font-bold text-emerald-600 dark:text-emerald-400">${item.stipend}</p>
+              <div class="flex items-start justify-between gap-3 mb-4">
+                <div class="flex items-center gap-3">
+                  <img src="${logoUrl}" alt="${item.company || 'Company'}" class="w-12 h-12 rounded-2xl object-cover border border-zinc-200 dark:border-zinc-700" onerror="this.src='https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80'" />
+                  <div>
+                    <h4 class="font-bold text-sm text-zinc-900 dark:text-white flex items-center gap-1.5">
+                      ${item.company || 'Tech Partner'}
+                      <i class="fa-solid fa-circle-check text-indigo-500 text-[10px]" title="Verified Recruiter"></i>
+                    </h4>
+                    <p class="text-[11px] text-zinc-500 flex items-center gap-1">
+                      <i class="fa-solid fa-location-dot text-[10px] text-rose-500"></i> ${item.location || 'Dhaka, Bangladesh'}
+                    </p>
+                  </div>
+                </div>
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${workModeClass}">${workMode}</span>
+              </div>
+
+              <h3 class="font-bold text-base text-zinc-900 dark:text-white mb-2">${item.title}</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 mb-4 leading-relaxed">${item.description || 'Join a fast-growing engineering and product team.'}</p>
+
+              <div class="flex flex-wrap gap-1.5 mb-5">
+                ${skillsList.slice(0, 4).map(s => `
+                  <span class="px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-700 dark:text-zinc-300">${s}</span>
+                `).join('')}
+              </div>
             </div>
-            <div class="flex items-center gap-2">
-              <a href="pages/student/internship-details.html?id=${item.id}" class="px-3.5 py-1.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-sm transition">
-                Apply Now
-              </a>
-              <a href="pages/company/applicants.html" class="px-3 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 text-xs font-bold hover:border-cyan-500 transition" title="Company Screening View">
-                <i class="fa-solid fa-building text-cyan-500"></i>
-              </a>
+
+            <div class="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-2">
+              <div>
+                <p class="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">Monthly Stipend</p>
+                <p class="text-xs font-bold text-emerald-600 dark:text-emerald-400">${item.stipend || '৳ 25,000 / month'}</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <a href="pages/student/internship-details.html?id=${item.id}" class="px-4 py-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5">
+                  <span>Apply Now</span>
+                  <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </a>
+              </div>
             </div>
           </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     // Auto-init category on page load
     document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(() => {
-        selectHomeCategory('Software & Development');
-      }, 100);
+      selectHomeCategory('Software & Development');
     });
   </script>
 </body>

@@ -157,22 +157,15 @@ function injectPortalNavigation() {
       </div>
 
       <!-- Right Bento Controls -->
-      <div class="flex items-center gap-2.5">
+      <div class="flex items-center gap-2">
         <!-- Return to Home Page Link -->
         <a href="../../index.html" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold transition" title="Go to Main Home Page">
           <i class="fa-solid fa-house text-xs text-indigo-500"></i>
           <span class="hidden sm:inline">Home</span>
         </a>
 
-        <!-- Direct Switch to Company Portal -->
-        <a href="../company/dashboard.html" class="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold transition" title="Switch to Corporate Recruiter View">
-          <i class="fa-solid fa-building text-xs text-cyan-500"></i>
-          <span>Company Portal</span>
-          <i class="fa-solid fa-arrow-right text-[10px] text-zinc-400"></i>
-        </a>
-
         <!-- Live Drive Badge -->
-        <div class="hidden md:flex items-center gap-2 px-3.5 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-xs font-bold rounded-full">
+        <div class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-xs font-bold rounded-full">
           <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
           <span>FALL 2026 LIVE</span>
         </div>
@@ -192,13 +185,23 @@ function injectPortalNavigation() {
         </div>
 
         <!-- Student Pill Profile -->
-        <a href="profile.html" class="flex items-center gap-3 bg-zinc-100/80 dark:bg-zinc-900/60 p-1.5 pl-3.5 border border-zinc-200 dark:border-zinc-800 rounded-full hover:border-indigo-400 dark:hover:border-indigo-500 transition">
+        <a href="profile.html" class="flex items-center gap-2.5 bg-zinc-100/80 dark:bg-zinc-900/60 p-1.5 pl-3 border border-zinc-200 dark:border-zinc-800 rounded-full hover:border-indigo-400 dark:hover:border-indigo-500 transition">
           <div class="text-right hidden sm:block">
-            <p class="text-xs font-bold text-zinc-900 dark:text-white leading-tight">${student.name.split(' ')[0]}</p>
+            <p class="text-xs font-bold text-zinc-900 dark:text-white leading-tight">${(student.name || 'Candidate').split(' ')[0]}</p>
             <p class="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Candidate</p>
           </div>
-          <img src="${student.avatar}" alt="${student.name}" class="w-8 h-8 rounded-full object-cover border border-zinc-300 dark:border-zinc-700" />
+          <img src="${student.avatar || DEFAULT_GUEST_STUDENT.avatar}" alt="${student.name || 'Student'}" class="w-8 h-8 rounded-full object-cover border border-zinc-300 dark:border-zinc-700" />
         </a>
+
+        <!-- Permanent Logout Button -->
+        <button onclick="handleLogout()" class="p-2.5 rounded-full bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white transition" title="Sign Out">
+          <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+        </button>
+
+        <!-- Mobile Three-Dot / Workspace Menu Button -->
+        <button id="mobile-workspace-btn" class="lg:hidden p-2.5 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300" title="Workspace Menu">
+          <i class="fa-solid fa-ellipsis-vertical text-sm"></i>
+        </button>
       </div>
     `;
   }
@@ -334,18 +337,11 @@ function injectPortalNavigation() {
       </div>
 
       <!-- Right Bento Controls -->
-      <div class="flex items-center gap-2.5">
+      <div class="flex items-center gap-2">
         <!-- Return to Home Page Link -->
         <a href="../../index.html" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold transition" title="Go to Main Home Page">
           <i class="fa-solid fa-house text-xs text-cyan-500"></i>
           <span class="hidden sm:inline">Home</span>
-        </a>
-
-        <!-- Direct Switch to Student Portal -->
-        <a href="../student/dashboard.html" class="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold transition" title="Switch to Student Candidate View">
-          <i class="fa-solid fa-graduation-cap text-xs text-indigo-500"></i>
-          <span>Student Portal</span>
-          <i class="fa-solid fa-arrow-right text-[10px] text-zinc-400"></i>
         </a>
 
         <a href="post-internship.html" class="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition">
@@ -368,13 +364,23 @@ function injectPortalNavigation() {
         </div>
 
         <!-- Corporate Pill Profile -->
-        <a href="profile.html" class="flex items-center gap-3 bg-zinc-100/80 dark:bg-zinc-900/60 p-1.5 pl-3.5 border border-zinc-200 dark:border-zinc-800 rounded-full hover:border-indigo-400 dark:hover:border-indigo-500 transition">
+        <a href="profile.html" class="flex items-center gap-2.5 bg-zinc-100/80 dark:bg-zinc-900/60 p-1.5 pl-3 border border-zinc-200 dark:border-zinc-800 rounded-full hover:border-indigo-400 dark:hover:border-indigo-500 transition">
           <div class="text-right hidden sm:block">
-            <p class="text-xs font-bold text-zinc-900 dark:text-white leading-tight">${company.hrName.split(' ')[0]}</p>
+            <p class="text-xs font-bold text-zinc-900 dark:text-white leading-tight">${(company.name || company.hrName || 'Organization').split(' ')[0]}</p>
             <p class="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Recruiter</p>
           </div>
-          <img src="${company.logo}" alt="${company.name}" class="w-8 h-8 rounded-full object-cover border border-zinc-300 dark:border-zinc-700" />
+          <img src="${company.logo || DEFAULT_GUEST_COMPANY.logo}" alt="${company.name || 'Company'}" class="w-8 h-8 rounded-full object-cover border border-zinc-300 dark:border-zinc-700" />
         </a>
+
+        <!-- Permanent Logout Button -->
+        <button onclick="handleLogout()" class="p-2.5 rounded-full bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white transition" title="Sign Out">
+          <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+        </button>
+
+        <!-- Mobile Three-Dot / Workspace Menu Button -->
+        <button id="mobile-workspace-btn" class="lg:hidden p-2.5 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300" title="Workspace Menu">
+          <i class="fa-solid fa-ellipsis-vertical text-sm"></i>
+        </button>
       </div>
     `;
   }
@@ -452,22 +458,9 @@ function injectPortalNavigation() {
           </a>
         </div>
 
-        <!-- Switch to Student / Company Portals -->
+        <!-- Admin Profile Card & Logout -->
         <div class="pt-4 border-t border-zinc-100 dark:border-zinc-800/80 space-y-2">
-          <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-2">Role Switcher</p>
-          <div class="grid grid-cols-2 gap-2">
-            <a href="../student/dashboard.html" class="px-2.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-indigo-500 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 hover:text-indigo-500 flex items-center justify-center gap-1.5 transition">
-              <i class="fa-solid fa-graduation-cap text-indigo-500 text-xs"></i>
-              <span>Student</span>
-            </a>
-            <a href="../company/dashboard.html" class="px-2.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-cyan-500 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 hover:text-cyan-500 flex items-center justify-center gap-1.5 transition">
-              <i class="fa-solid fa-building text-cyan-500 text-xs"></i>
-              <span>Company</span>
-            </a>
-          </div>
-
-          <!-- Admin Profile Card -->
-          <div class="pt-2 flex items-center justify-between p-2.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/80">
+          <div class="flex items-center justify-between p-2.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/80">
             <div class="flex items-center gap-2.5 min-w-0">
               <div class="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 border border-amber-500/30 flex items-center justify-center font-bold text-xs shrink-0">
                 <i class="fa-solid fa-user-shield"></i>
@@ -477,9 +470,9 @@ function injectPortalNavigation() {
                 <p class="text-[10px] text-zinc-400 truncate">Super Administrator</p>
               </div>
             </div>
-            <a href="login.html" class="p-1.5 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-rose-500/10 transition" title="Log Out">
+            <button onclick="handleLogout()" class="p-2 rounded-xl text-zinc-400 hover:text-rose-500 hover:bg-rose-500/10 transition" title="Sign Out">
               <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
-            </a>
+            </button>
           </div>
         </div>
       </div>
@@ -490,7 +483,7 @@ function injectPortalNavigation() {
     adminTopbarRoot.className = "h-16 border-b border-zinc-200 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md px-4 sm:px-8 flex items-center justify-between z-20 shrink-0";
     adminTopbarRoot.innerHTML = `
       <div class="flex items-center gap-4">
-        <button id="sidebar-toggle-btn" class="lg:hidden p-2 rounded-xl text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900">
+        <button id="sidebar-toggle-btn" class="lg:hidden p-2 rounded-xl text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900" title="Toggle Navigation">
           <i class="fa-solid fa-bars text-lg"></i>
         </button>
 
@@ -503,19 +496,11 @@ function injectPortalNavigation() {
       </div>
 
       <!-- Right Bento Controls -->
-      <div class="flex items-center gap-2.5">
+      <div class="flex items-center gap-2">
         <!-- Return to Home Page Link -->
         <a href="../../index.html" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold transition" title="Go to Main Home Page">
           <i class="fa-solid fa-house text-xs text-amber-500"></i>
           <span class="hidden sm:inline">Home</span>
-        </a>
-
-        <!-- Portal Quick Links -->
-        <a href="../student/dashboard.html" class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-xs font-bold transition">
-          <i class="fa-solid fa-graduation-cap"></i> Student
-        </a>
-        <a href="../company/dashboard.html" class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 text-xs font-bold transition">
-          <i class="fa-solid fa-building"></i> Company
         </a>
 
         <!-- Broadcast Button -->
@@ -540,44 +525,90 @@ function injectPortalNavigation() {
             <i class="fa-solid fa-user-shield"></i>
           </div>
         </div>
+
+        <!-- Permanent Logout Button -->
+        <button onclick="handleLogout()" class="p-2.5 rounded-full bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white transition" title="Sign Out">
+          <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+        </button>
+
+        <!-- Mobile Three-Dot / Workspace Menu Button -->
+        <button id="mobile-workspace-btn" class="lg:hidden p-2.5 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300" title="Workspace Menu">
+          <i class="fa-solid fa-ellipsis-vertical text-sm"></i>
+        </button>
       </div>
     `;
   }
 }
 
-// Mobile Sidebar & Navigation Toggle
+// Mobile Sidebar & Navigation Toggle (Responsive Drawer + Workspace Buttons)
 function setupMobileNav() {
-  const toggleBtn = document.getElementById('mobile-menu-btn') || document.getElementById('sidebar-toggle-btn');
-  const sidebar = document.getElementById('app-sidebar') || document.getElementById('mobile-menu');
-  const overlay = document.getElementById('sidebar-overlay') || document.getElementById('mobile-menu-overlay');
+  const sidebar = document.getElementById('app-sidebar') || document.querySelector('aside');
+  if (!sidebar) return;
 
-  if (toggleBtn && sidebar) {
-    toggleBtn.addEventListener('click', (e) => {
+  // Ensure overlay backdrop exists in DOM
+  let overlay = document.getElementById('sidebar-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'sidebar-overlay';
+    overlay.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden transition-opacity lg:hidden';
+    document.body.appendChild(overlay);
+  }
+
+  function openSidebar() {
+    sidebar.classList.remove('-translate-x-full');
+    sidebar.classList.add('translate-x-0');
+    overlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeSidebar() {
+    sidebar.classList.add('-translate-x-full');
+    sidebar.classList.remove('translate-x-0');
+    overlay.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+
+  // Bind all menu trigger buttons (hamburger, workspace button, three dots button)
+  const triggers = document.querySelectorAll('#mobile-menu-btn, #mobile-workspace-btn, #sidebar-toggle-btn, .mobile-sidebar-open, .mobile-workspace-btn');
+  triggers.forEach(btn => {
+    btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      sidebar.classList.toggle('-translate-x-full');
-      sidebar.classList.toggle('hidden');
-      if (overlay) {
-        overlay.classList.toggle('hidden');
+      openSidebar();
+    });
+  });
+
+  // Bind close buttons
+  const closeBtns = document.querySelectorAll('#close-sidebar-btn, #close-mobile-menu, .mobile-sidebar-close');
+  closeBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeSidebar();
+    });
+  });
+
+  // Overlay click to dismiss
+  overlay.addEventListener('click', closeSidebar);
+
+  // Pressing Escape dismisses
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSidebar();
+  });
+
+  // Automatically close sidebar when clicking a navigation link on mobile
+  sidebar.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth < 1024) {
+        closeSidebar();
       }
     });
+  });
 
-    if (overlay) {
-      overlay.addEventListener('click', () => {
-        sidebar.classList.add('-translate-x-full');
-        sidebar.classList.add('hidden');
-        overlay.classList.add('hidden');
-      });
+  // Window resize protection
+  window.addEventListener('resize', () => {
+    if (window.innerWidth >= 1024) {
+      closeSidebar();
     }
-
-    const closeBtn = document.getElementById('close-sidebar-btn') || document.getElementById('close-mobile-menu');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => {
-        sidebar.classList.add('-translate-x-full');
-        sidebar.classList.add('hidden');
-        if (overlay) overlay.classList.add('hidden');
-      });
-    }
-  }
+  });
 }
 
 // User Profile & Notification Dropdown Menus
@@ -708,14 +739,18 @@ function closeModal(modalId) {
   }
 }
 
-// Global Logout Handler
-function handleLogout(redirectPath = '../../index.html') {
-  if (confirm('Are you sure you want to sign out of your account?')) {
-    DB.logout();
-    showToast('Logged out successfully', 'info');
-    setTimeout(() => {
-      window.location.href = redirectPath;
-    }, 500);
+// Global Secure Logout Handler
+function handleLogout(redirectPath) {
+  const target = redirectPath || (window.location.pathname.includes('/pages/') ? '../../index.html' : './index.html');
+  showToast('Signing out securely...', 'info');
+  if (window.AuthGuard && typeof window.AuthGuard.logout === 'function') {
+    window.AuthGuard.logout(target);
+  } else if (window.DB && typeof window.DB.logout === 'function') {
+    window.DB.logout(target);
+  } else {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace(target);
   }
 }
 

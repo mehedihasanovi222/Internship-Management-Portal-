@@ -1,11 +1,20 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import { execSync } from "child_process";
 import { createServer as createViteServer } from "vite";
 
 const app = express();
 const PORT = 3000;
+
+// Prevent browser/proxy caching of protected user sessions & dynamic state
+app.use((req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+});
 
 // Built-in body parsing
 app.use(express.json({ limit: "10mb" }));
@@ -135,6 +144,31 @@ interface Student {
   resetPasswordExpires?: number;
 }
 
+interface ActiveSession {
+  token: string;
+  userId: string;
+  role: "student" | "company" | "admin";
+  email: string;
+  name: string;
+  avatar?: string;
+  createdAt: string;
+  lastActiveAt: string;
+  ip?: string;
+  userAgent?: string;
+}
+
+interface AuditLog {
+  id: string;
+  action: string;
+  userId?: string;
+  email?: string;
+  role?: string;
+  details: string;
+  ip?: string;
+  timestamp: string;
+  status: "success" | "warning" | "error";
+}
+
 interface SystemData {
   internships: Internship[];
   applications: Application[];
@@ -148,6 +182,8 @@ interface SystemData {
     role: string;
     department: string;
   };
+  sessions?: ActiveSession[];
+  auditLogs?: AuditLog[];
 }
 
 // Initial default seed state
@@ -479,7 +515,21 @@ const initialData: SystemData = {
     email: "admin@university.edu.bd",
     role: "Super Administrator & Placement Officer",
     department: "University Career Development & Corporate Relations Cell"
-  }
+  },
+  sessions: [],
+  auditLogs: [
+    {
+      id: "log-init-1",
+      action: "SYSTEM_INITIALIZED",
+      userId: "system",
+      email: "system@university.edu.bd",
+      role: "system",
+      details: "Placement Portal security subsystem and session authority initialized.",
+      ip: "127.0.0.1",
+      timestamp: new Date().toISOString(),
+      status: "success"
+    }
+  ]
 };
 
 // In-memory data store with file persistence
@@ -494,6 +544,8 @@ function loadDatabase() {
       const content = fs.readFileSync(DATA_FILE, "utf-8");
       const loaded = JSON.parse(content);
       dataStore = { ...initialData, ...loaded };
+      if (!Array.isArray(dataStore.sessions)) dataStore.sessions = [];
+      if (!Array.isArray(dataStore.auditLogs)) dataStore.auditLogs = [];
       // Ensure student and company passwords exist
       if (Array.isArray(dataStore.students)) {
         dataStore.students.forEach(s => {
@@ -522,6 +574,92 @@ function saveDatabase() {
   } catch (err) {
     console.error("Error saving database file:", err);
   }
+}
+
+function logAuditEvent(
+  action: string,
+  details: string,
+  req?: Request,
+  meta?: { email?: string; role?: string; status?: "success" | "warning" | "error"; userId?: string }
+) {
+  if (!Array.isArray(dataStore.auditLogs)) dataStore.auditLogs = [];
+  const log: AuditLog = {
+    id: "log_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
+    action,
+    details,
+    email: meta?.email || "",
+    role: meta?.role || "",
+    userId: meta?.userId || "",
+    ip: (req?.headers["x-forwarded-for"] as string) || req?.socket?.remoteAddress || "127.0.0.1",
+    timestamp: new Date().toISOString(),
+    status: meta?.status || "success"
+  };
+  dataStore.auditLogs.unshift(log);
+  if (dataStore.auditLogs.length > 500) {
+    dataStore.auditLogs = dataStore.auditLogs.slice(0, 500);
+  }
+  saveDatabase();
+  return log;
+}
+
+function getSessionFromRequest(req: Request): ActiveSession | null {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim() || (req.headers["x-session-token"] as string) || "";
+  if (!token) return null;
+
+  if (!Array.isArray(dataStore.sessions)) dataStore.sessions = [];
+  const session = dataStore.sessions.find(s => s.token === token);
+  if (!session) return null;
+
+  // Check account suspension status
+  if (session.role === "student") {
+    const student = dataStore.students.find(s => s.id === session.userId);
+    if (student && student.status === "suspended") {
+      dataStore.sessions = dataStore.sessions.filter(s => s.token !== token);
+      saveDatabase();
+      return null;
+    }
+  } else if (session.role === "company") {
+    const company = dataStore.companies.find(c => c.id === session.userId);
+    if (company && company.status === "suspended") {
+      dataStore.sessions = dataStore.sessions.filter(s => s.token !== token);
+      saveDatabase();
+      return null;
+    }
+  }
+
+  session.lastActiveAt = new Date().toISOString();
+  return session;
+}
+
+// RBAC Middleware
+function requireAuth(req: Request, res: Response, next: NextFunction) {
+  const session = getSessionFromRequest(req);
+  if (!session) {
+    return res.status(401).json({ error: "Authentication required. Please sign in." });
+  }
+  (req as any).session = session;
+  next();
+}
+
+function requireRole(allowedRoles: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const session = getSessionFromRequest(req);
+    if (!session) {
+      return res.status(401).json({ error: "Authentication required. Please sign in." });
+    }
+    if (!allowedRoles.includes(session.role)) {
+      logAuditEvent("ROLE_VIOLATION", `Role ${session.role} attempted unauthorized access to ${req.method} ${req.path}`, req, {
+        email: session.email,
+        role: session.role,
+        userId: session.userId,
+        status: "warning"
+      });
+      return res.status(403).json({ error: `Forbidden: Access restricted to [${allowedRoles.join(", ")}].` });
+    }
+    (req as any).session = session;
+    next();
+  };
 }
 
 loadDatabase();
@@ -602,16 +740,26 @@ app.get("/api/internships/:id", (req: Request, res: Response) => {
 });
 
 app.post("/api/internships", (req: Request, res: Response) => {
-  const companyEmail = req.body.companyEmail || req.body.email;
-  const companyName = req.body.company;
-  const companyId = req.body.companyId;
+  const session = getSessionFromRequest(req);
+  if (!session) {
+    return res.status(401).json({ error: "Authentication required. Please sign in to post internships." });
+  }
+  if (session.role !== "company" && session.role !== "admin") {
+    return res.status(403).json({ error: "Access denied. Only registered companies or administrators can post internships." });
+  }
 
   // Verify company identity
-  const existingCompany = dataStore.companies.find(c => 
-    (companyId && c.id === companyId) ||
-    (companyEmail && c.email.toLowerCase() === companyEmail.toLowerCase()) ||
-    (companyName && c.name.toLowerCase() === companyName.toLowerCase())
-  );
+  let existingCompany: Company | undefined;
+  if (session.role === "company") {
+    existingCompany = dataStore.companies.find(c => c.id === session.userId || c.email.toLowerCase() === session.email.toLowerCase());
+  } else {
+    const companyId = req.body.companyId;
+    const companyEmail = req.body.companyEmail || req.body.email;
+    existingCompany = dataStore.companies.find(c => 
+      (companyId && c.id === companyId) ||
+      (companyEmail && c.email.toLowerCase() === companyEmail.toLowerCase())
+    );
+  }
 
   // If company account exists and is unverified/pending, prevent posting
   if (existingCompany && existingCompany.verified === false) {
@@ -620,8 +768,8 @@ app.post("/api/internships", (req: Request, res: Response) => {
     });
   }
 
-  const finalCompanyId = existingCompany ? existingCompany.id : (companyId || "comp-" + Date.now());
-  const finalCompanyName = existingCompany ? existingCompany.name : (companyName || "TechNova Solutions");
+  const finalCompanyId = existingCompany ? existingCompany.id : (session.role === "company" ? session.userId : (req.body.companyId || "comp-" + Date.now()));
+  const finalCompanyName = existingCompany ? existingCompany.name : (session.role === "company" ? session.name : (req.body.company || "TechNova Solutions"));
   const finalLogo = (existingCompany && existingCompany.logo) ? existingCompany.logo : (req.body.logo || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80");
 
   const newPost: Internship = {
@@ -653,58 +801,120 @@ app.post("/api/internships", (req: Request, res: Response) => {
   };
 
   dataStore.internships.unshift(newPost);
+  logAuditEvent("INTERNSHIP_CREATED", `Internship posted: "${newPost.title}" by ${finalCompanyName}`, req, {
+    email: session.email,
+    role: session.role,
+    userId: session.userId,
+    status: "success"
+  });
   saveDatabase();
   res.status(201).json({ success: true, internship: newPost });
 });
 
 app.put("/api/internships/:id", (req: Request, res: Response) => {
+  const session = getSessionFromRequest(req);
+  if (!session || (session.role !== "company" && session.role !== "admin")) {
+    return res.status(403).json({ error: "Unauthorized. Company or Admin credentials required." });
+  }
+
   const index = dataStore.internships.findIndex(i => i.id === req.params.id);
   if (index === -1) {
     return res.status(404).json({ error: "Internship not found" });
   }
 
-  dataStore.internships[index] = { ...dataStore.internships[index], ...req.body };
+  const item = dataStore.internships[index];
+  if (session.role === "company" && item.companyId && item.companyId !== session.userId) {
+    const comp = dataStore.companies.find(c => c.id === session.userId);
+    if (!comp || comp.name.toLowerCase() !== item.company.toLowerCase()) {
+      return res.status(403).json({ error: "You are only authorized to modify internships posted by your own company." });
+    }
+  }
+
+  dataStore.internships[index] = { ...dataStore.internships[index], ...req.body, id: item.id };
   saveDatabase();
   res.json({ success: true, internship: dataStore.internships[index] });
 });
 
 app.delete("/api/internships/:id", (req: Request, res: Response) => {
-  const initialLength = dataStore.internships.length;
-  dataStore.internships = dataStore.internships.filter(i => i.id !== req.params.id);
+  const session = getSessionFromRequest(req);
+  if (!session || (session.role !== "company" && session.role !== "admin")) {
+    return res.status(403).json({ error: "Unauthorized. Company or Admin credentials required." });
+  }
 
-  if (dataStore.internships.length === initialLength) {
+  const item = dataStore.internships.find(i => i.id === req.params.id);
+  if (!item) {
     return res.status(404).json({ error: "Internship not found" });
   }
 
+  if (session.role === "company" && item.companyId && item.companyId !== session.userId) {
+    const comp = dataStore.companies.find(c => c.id === session.userId);
+    if (!comp || comp.name.toLowerCase() !== item.company.toLowerCase()) {
+      return res.status(403).json({ error: "You are only authorized to delete internships posted by your company." });
+    }
+  }
+
+  dataStore.internships = dataStore.internships.filter(i => i.id !== req.params.id);
+  logAuditEvent("INTERNSHIP_DELETED", `Internship removed: "${item.title}" (${item.id})`, req, {
+    email: session.email,
+    role: session.role,
+    userId: session.userId,
+    status: "warning"
+  });
   saveDatabase();
   res.json({ success: true, message: "Internship deleted successfully" });
 });
 
 app.patch("/api/internships/:id/status", (req: Request, res: Response) => {
+  const session = getSessionFromRequest(req);
+  if (!session || (session.role !== "company" && session.role !== "admin")) {
+    return res.status(403).json({ error: "Unauthorized. Company or Admin credentials required." });
+  }
+
   const item = dataStore.internships.find(i => i.id === req.params.id);
   if (!item) {
     return res.status(404).json({ error: "Internship not found" });
   }
+
+  if (session.role === "company" && item.companyId && item.companyId !== session.userId) {
+    const comp = dataStore.companies.find(c => c.id === session.userId);
+    if (!comp || comp.name.toLowerCase() !== item.company.toLowerCase()) {
+      return res.status(403).json({ error: "Forbidden to change status of another company's internship." });
+    }
+  }
+
   item.status = req.body.status || (item.status === "closed" ? "active" : "closed");
   saveDatabase();
   res.json({ success: true, internship: item });
 });
 
-// Applications API
+// Applications API (Strict RBAC & User Session Isolation)
 app.get("/api/applications", (req: Request, res: Response) => {
+  const session = getSessionFromRequest(req);
   let list = [...dataStore.applications];
   const { studentId, company, companyId, status, internshipId } = req.query;
 
-  if (studentId && typeof studentId === "string") {
+  // Strict RBAC isolation
+  if (session && session.role === "student") {
+    list = list.filter(a => a.studentId === session.userId || a.studentEmail?.toLowerCase() === session.email.toLowerCase());
+  } else if (session && session.role === "company") {
+    const comp = dataStore.companies.find(c => c.id === session.userId || c.email.toLowerCase() === session.email.toLowerCase());
+    const compName = comp ? comp.name.toLowerCase() : "";
+    list = list.filter(a => 
+      (a.companyId && a.companyId === session.userId) || 
+      (compName && a.company?.toLowerCase() === compName)
+    );
+  }
+
+  if (studentId && typeof studentId === "string" && (!session || session.role === "admin")) {
     list = list.filter(a => a.studentId === studentId);
   }
   if (internshipId && typeof internshipId === "string") {
     list = list.filter(a => a.internshipId === internshipId);
   }
-  if (companyId && typeof companyId === "string") {
+  if (companyId && typeof companyId === "string" && (!session || session.role === "admin")) {
     list = list.filter(a => a.companyId === companyId);
   }
-  if (company && typeof company === "string") {
+  if (company && typeof company === "string" && (!session || session.role === "admin")) {
     list = list.filter(a => a.company.toLowerCase().includes(company.toLowerCase()));
   }
   if (status && typeof status === "string") {
@@ -716,21 +926,35 @@ app.get("/api/applications", (req: Request, res: Response) => {
 
 // Check if student already applied for this internship
 app.get("/api/applications/check", (req: Request, res: Response) => {
-  const { studentId, internshipId, studentEmail } = req.query;
+  const session = getSessionFromRequest(req);
+  const { internshipId } = req.query;
+  const effectiveStudentId = (session?.role === "student" ? session.userId : (req.query.studentId as string)) || "";
+  const effectiveStudentEmail = (session?.role === "student" ? session.email : (req.query.studentEmail as string)) || "";
+
   const existingApp = dataStore.applications.find(a => 
     a.internshipId === internshipId && 
-    (a.studentId === studentId || (studentEmail && a.studentEmail?.toLowerCase() === (studentEmail as string).toLowerCase()))
+    ((effectiveStudentId && a.studentId === effectiveStudentId) || (effectiveStudentEmail && a.studentEmail?.toLowerCase() === effectiveStudentEmail.toLowerCase()))
   );
   res.json({ hasApplied: Boolean(existingApp), application: existingApp || null });
 });
 
 app.post("/api/applications", (req: Request, res: Response) => {
-  const { internshipId, studentId, studentEmail } = req.body;
+  const session = getSessionFromRequest(req);
+  if (!session) {
+    return res.status(401).json({ error: "Authentication required. Please sign in as a student to apply." });
+  }
+  if (session.role !== "student" && session.role !== "admin") {
+    return res.status(403).json({ error: "Access denied. Only students can submit internship applications." });
+  }
+
+  const { internshipId } = req.body;
+  const effectiveStudentId = session.role === "student" ? session.userId : (req.body.studentId || "std-" + Date.now());
+  const effectiveStudentEmail = session.role === "student" ? session.email : (req.body.studentEmail || "student@university.edu");
 
   // Duplicate Application Prevention
   const existingApp = dataStore.applications.find(a => 
     a.internshipId === internshipId && 
-    (a.studentId === studentId || (studentEmail && a.studentEmail?.toLowerCase() === studentEmail.toLowerCase()))
+    (a.studentId === effectiveStudentId || a.studentEmail?.toLowerCase() === effectiveStudentEmail.toLowerCase())
   );
 
   if (existingApp) {
@@ -742,8 +966,7 @@ app.post("/api/applications", (req: Request, res: Response) => {
 
   const internship = dataStore.internships.find(i => i.id === internshipId);
   const student = dataStore.students.find(s => 
-    s.id === studentId || 
-    (studentEmail && s.email.toLowerCase() === (studentEmail as string).toLowerCase())
+    s.id === effectiveStudentId || s.email.toLowerCase() === effectiveStudentEmail.toLowerCase()
   );
 
   const studentResume = student?.resume || {};
@@ -754,14 +977,14 @@ app.post("/api/applications", (req: Request, res: Response) => {
     id: "app-" + Date.now(),
     internshipId: internshipId || (internship ? internship.id : "int-101"),
     companyId: internship?.companyId || (internship ? "comp-" + internship.company.toLowerCase().replace(/[^a-z0-9]/g, "") : undefined),
-    studentId: studentId || student?.id || "std-" + Date.now(),
-    studentName: req.body.studentName || student?.name || "Candidate Scholar",
-    studentEmail: req.body.studentEmail || student?.email || "student@university.edu",
+    studentId: effectiveStudentId,
+    studentName: req.body.studentName || student?.name || session.name || "Candidate Scholar",
+    studentEmail: effectiveStudentEmail,
     studentPhone: req.body.studentPhone || student?.phone || "+880 1700-000000",
     studentUniversity: req.body.studentUniversity || student?.university || "University of Computer Studies & Engineering",
     studentDepartment: req.body.studentDepartment || student?.department || "Computer Science & Engineering",
     studentCgpa: req.body.studentCgpa || student?.cgpa || "3.75",
-    studentPhoto: req.body.studentPhoto || student?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
+    studentPhoto: req.body.studentPhoto || student?.avatar || session.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
     jobTitle: req.body.jobTitle || internship?.title || "Technology Intern",
     company: req.body.company || internship?.company || "TechNova Solutions",
     companyLogo: req.body.companyLogo || internship?.logo || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80",
@@ -779,6 +1002,12 @@ app.post("/api/applications", (req: Request, res: Response) => {
   };
 
   dataStore.applications.unshift(newApp);
+  logAuditEvent("APPLICATION_SUBMITTED", `Application submitted by ${newApp.studentName} for ${newApp.jobTitle} at ${newApp.company}`, req, {
+    email: session.email,
+    role: session.role,
+    userId: session.userId,
+    status: "success"
+  });
 
   // Notify company
   dataStore.notifications.unshift({
@@ -796,9 +1025,22 @@ app.post("/api/applications", (req: Request, res: Response) => {
 });
 
 app.put("/api/applications/:id/status", (req: Request, res: Response) => {
+  const session = getSessionFromRequest(req);
+  if (!session || (session.role !== "company" && session.role !== "admin")) {
+    return res.status(403).json({ error: "Access denied. Company or Admin credentials required." });
+  }
+
   const appItem = dataStore.applications.find(a => a.id === req.params.id);
   if (!appItem) {
     return res.status(404).json({ error: "Application not found" });
+  }
+
+  if (session.role === "company") {
+    const comp = dataStore.companies.find(c => c.id === session.userId || c.email.toLowerCase() === session.email.toLowerCase());
+    const compName = comp ? comp.name.toLowerCase() : "";
+    if (appItem.companyId && appItem.companyId !== session.userId && compName && appItem.company?.toLowerCase() !== compName) {
+      return res.status(403).json({ error: "Unauthorized to update status of candidates for another company." });
+    }
   }
 
   const newStatus = req.body.status;
@@ -809,6 +1051,13 @@ app.put("/api/applications/:id/status", (req: Request, res: Response) => {
     step: newStatus,
     date: new Date().toISOString().split("T")[0],
     note: req.body.note || `Status updated to ${newStatus}`
+  });
+
+  logAuditEvent("APPLICATION_STATUS_UPDATED", `Application ${appItem.id} status changed to ${newStatus} by ${session.email}`, req, {
+    email: session.email,
+    role: session.role,
+    userId: session.userId,
+    status: "success"
   });
 
   // Notify Student
@@ -827,9 +1076,22 @@ app.put("/api/applications/:id/status", (req: Request, res: Response) => {
 });
 
 app.patch("/api/applications/:id/status", (req: Request, res: Response) => {
+  const session = getSessionFromRequest(req);
+  if (!session || (session.role !== "company" && session.role !== "admin")) {
+    return res.status(403).json({ error: "Access denied. Company or Admin credentials required." });
+  }
+
   const appItem = dataStore.applications.find(a => a.id === req.params.id);
   if (!appItem) {
     return res.status(404).json({ error: "Application not found" });
+  }
+
+  if (session.role === "company") {
+    const comp = dataStore.companies.find(c => c.id === session.userId || c.email.toLowerCase() === session.email.toLowerCase());
+    const compName = comp ? comp.name.toLowerCase() : "";
+    if (appItem.companyId && appItem.companyId !== session.userId && compName && appItem.company?.toLowerCase() !== compName) {
+      return res.status(403).json({ error: "Unauthorized to update status of candidates for another company." });
+    }
   }
 
   const newStatus = req.body.status;
@@ -840,6 +1102,13 @@ app.patch("/api/applications/:id/status", (req: Request, res: Response) => {
     step: newStatus,
     date: new Date().toISOString().split("T")[0],
     note: req.body.note || `Status updated to ${newStatus}`
+  });
+
+  logAuditEvent("APPLICATION_STATUS_UPDATED", `Application ${appItem.id} status changed to ${newStatus} by ${session.email}`, req, {
+    email: session.email,
+    role: session.role,
+    userId: session.userId,
+    status: "success"
   });
 
   // Notify Student
@@ -871,6 +1140,11 @@ app.get("/api/companies/:id", (req: Request, res: Response) => {
 });
 
 app.put("/api/companies/:id/verify", (req: Request, res: Response) => {
+  const session = getSessionFromRequest(req);
+  if (!session || session.role !== "admin") {
+    return res.status(403).json({ error: "Access denied. Administrator privileges required to verify companies." });
+  }
+
   const comp = dataStore.companies.find(c => c.id === req.params.id);
   if (!comp) {
     return res.status(404).json({ error: "Company not found" });
@@ -880,13 +1154,59 @@ app.put("/api/companies/:id/verify", (req: Request, res: Response) => {
   if (typeof verified === "boolean") comp.verified = verified;
   if (status) comp.status = status;
 
+  logAuditEvent("COMPANY_VERIFIED", `Administrator updated status for company ${comp.name} (${comp.id}): verified=${comp.verified}, status=${comp.status}`, req, {
+    email: session.email,
+    role: "admin",
+    userId: session.userId,
+    status: "success"
+  });
+
   saveDatabase();
   res.json({ success: true, company: comp });
 });
 
-// Students API (Placement Directory for Admin)
+// Update Company Profile
+app.put("/api/companies/:id", (req: Request, res: Response) => {
+  const session = getSessionFromRequest(req);
+  if (!session) {
+    return res.status(401).json({ error: "Authentication required." });
+  }
+  const isOwner = session.role === "company" && (session.userId === req.params.id || session.email.toLowerCase() === req.params.id.toLowerCase());
+  const isAdmin = session.role === "admin";
+  if (!isOwner && !isAdmin) {
+    return res.status(403).json({ error: "Unauthorized: You can only update your own company profile." });
+  }
+
+  const comp = dataStore.companies.find(c => c.id === req.params.id || c.email.toLowerCase() === req.params.id.toLowerCase());
+  if (!comp) {
+    return res.status(404).json({ error: "Company not found" });
+  }
+
+  if (req.body.name) comp.name = req.body.name;
+  if (req.body.tagline) comp.tagline = req.body.tagline;
+  if (req.body.industry) comp.industry = req.body.industry;
+  if (req.body.companySize) comp.companySize = req.body.companySize;
+  if (req.body.website) comp.website = req.body.website;
+  if (req.body.phone) comp.phone = req.body.phone;
+  if (req.body.location) comp.location = req.body.location;
+  if (req.body.logo) comp.logo = req.body.logo;
+  if (req.body.coverImage) comp.coverImage = req.body.coverImage;
+  if (req.body.hrName) comp.hrName = req.body.hrName;
+  if (req.body.hrEmail) comp.hrEmail = req.body.hrEmail;
+  if (req.body.hrPhone) comp.hrPhone = req.body.hrPhone;
+  if (req.body.founded) comp.founded = req.body.founded;
+  if (req.body.description) comp.description = req.body.description;
+  if (req.body.socials) comp.socials = { ...comp.socials, ...req.body.socials };
+
+  saveDatabase();
+  res.json({ success: true, company: comp });
+});
+
+// Students API (Placement Directory for Admin & Authenticated Users)
 app.get("/api/students", (req: Request, res: Response) => {
-  res.json(dataStore.students);
+  // Strip sensitive fields (passwords) from output
+  const safeStudents = dataStore.students.map(({ password, ...rest }) => rest);
+  res.json(safeStudents);
 });
 
 app.get("/api/students/:id", (req: Request, res: Response) => {
@@ -894,10 +1214,22 @@ app.get("/api/students/:id", (req: Request, res: Response) => {
   if (!student) {
     return res.status(404).json({ error: "Student not found" });
   }
-  res.json(student);
+  const { password, ...safeStudent } = student;
+  res.json(safeStudent);
 });
 
 app.put("/api/students/:id", (req: Request, res: Response) => {
+  const session = getSessionFromRequest(req);
+  if (!session) {
+    return res.status(401).json({ error: "Authentication required to update profile." });
+  }
+
+  const isSelf = session.role === "student" && (session.userId === req.params.id || session.email.toLowerCase() === req.params.id.toLowerCase());
+  const isAdmin = session.role === "admin";
+  if (!isSelf && !isAdmin) {
+    return res.status(403).json({ error: "Forbidden: You are only permitted to update your own student profile." });
+  }
+
   const student = dataStore.students.find(s => s.id === req.params.id || s.email.toLowerCase() === req.params.id.toLowerCase());
   if (!student) {
     return res.status(404).json({ error: "Student not found" });
@@ -923,32 +1255,64 @@ app.put("/api/students/:id", (req: Request, res: Response) => {
   if (Array.isArray(req.body.certifications)) student.certifications = req.body.certifications;
   if (req.body.resume) student.resume = req.body.resume;
 
+  logAuditEvent("PROFILE_UPDATED", `Student profile updated: ${student.name} (${student.email})`, req, {
+    email: session.email,
+    role: session.role,
+    userId: session.userId,
+    status: "success"
+  });
+
   saveDatabase();
-  res.json({ success: true, student });
+  const { password, ...safeStudent } = student;
+  res.json({ success: true, student: safeStudent });
 });
 
-// Interviews API
+// Interviews API (Strict RBAC)
 app.get("/api/interviews", (req: Request, res: Response) => {
-  res.json(dataStore.interviews);
+  const session = getSessionFromRequest(req);
+  let list = [...dataStore.interviews];
+
+  if (session && session.role === "student") {
+    list = list.filter(i => i.studentId === session.userId || (session.email && (i as any).studentEmail?.toLowerCase() === session.email.toLowerCase()));
+  } else if (session && session.role === "company") {
+    const comp = dataStore.companies.find(c => c.id === session.userId || c.email.toLowerCase() === session.email.toLowerCase());
+    const compName = comp ? comp.name.toLowerCase() : "";
+    list = list.filter(i => (i as any).companyId === session.userId || (compName && i.company.toLowerCase() === compName));
+  }
+
+  res.json(list);
 });
 
 app.post("/api/interviews", (req: Request, res: Response) => {
+  const session = getSessionFromRequest(req);
+  if (!session || (session.role !== "company" && session.role !== "admin")) {
+    return res.status(403).json({ error: "Access denied. Only corporate recruiters or administrators can schedule interviews." });
+  }
+
   const newInterview = {
     id: "intv-" + Date.now(),
     applicationId: req.body.applicationId || "app-301",
     studentId: req.body.studentId || "std-2022001",
-    studentName: req.body.studentName || "Mehedi Hasan",
-    company: req.body.company || "TechNova Solutions",
-    position: req.body.position || "Frontend Developer Intern",
-    date: req.body.date || "2026-09-10",
+    studentName: req.body.studentName || "Candidate Scholar",
+    company: session.role === "company" ? session.name : (req.body.company || "TechNova Solutions"),
+    companyId: session.role === "company" ? session.userId : req.body.companyId,
+    position: req.body.position || "Software Engineering Intern",
+    date: req.body.date || "2026-10-15",
     time: req.body.time || "11:00 AM - 11:45 AM (BST)",
     type: req.body.type || "Google Meet",
     meetingLink: req.body.meetingLink || "https://meet.google.com/abc-intern-interview",
     status: "Upcoming",
-    interviewer: req.body.interviewer || "Technical Lead"
+    interviewer: req.body.interviewer || session.name || "Technical Lead"
   };
 
   dataStore.interviews.unshift(newInterview);
+
+  logAuditEvent("INTERVIEW_SCHEDULED", `Interview scheduled for candidate ${newInterview.studentName} by ${newInterview.company}`, req, {
+    email: session.email,
+    role: session.role,
+    userId: session.userId,
+    status: "success"
+  });
 
   // Notify student
   dataStore.notifications.unshift({
@@ -1041,10 +1405,11 @@ app.post("/api/upload/remove", (req: Request, res: Response) => {
 // Real Resume / CV Document Upload (PDF <= 10MB)
 app.post("/api/upload/resume", (req: Request, res: Response) => {
   try {
+    const session = getSessionFromRequest(req);
     const rawData = req.body.dataUrl || req.body.fileData || req.body.resume;
     const originalName = (req.body.fileName || req.body.filename || "Resume.pdf").trim();
-    const studentId = req.body.studentId;
-    const studentEmail = req.body.studentEmail;
+    const studentId = session?.role === "student" ? session.userId : req.body.studentId;
+    const studentEmail = session?.role === "student" ? session.email : req.body.studentEmail;
 
     if (!rawData || typeof rawData !== "string") {
       return res.status(400).json({ error: "No PDF resume data provided." });
@@ -1109,18 +1474,15 @@ app.post("/api/upload/resume", (req: Request, res: Response) => {
 // AUTHENTICATION & IDENTITY APIS
 // -------------------------------------------------------------
 
-// Session Check Endpoint (Maintains Login on Refresh & Navigation)
+// Session Check Endpoint (Strict Bearer Token Validation & Session Isolation)
 app.get("/api/auth/me", (req: Request, res: Response) => {
-  const authHeader = req.headers.authorization || "";
-  const token = authHeader.replace("Bearer ", "").trim() || (req.query.token as string) || "";
-  const email = (req.query.email as string || "").trim().toLowerCase();
-
-  if (!token && !email) {
-    return res.status(401).json({ authenticated: false, error: "No active session." });
+  const session = getSessionFromRequest(req);
+  if (!session) {
+    return res.status(401).json({ authenticated: false, error: "No active or valid session." });
   }
 
   // Admin Check
-  if (token === "jwt_admin_session_token" || email === "admin@university.edu.bd") {
+  if (session.role === "admin") {
     return res.json({
       authenticated: true,
       role: "admin",
@@ -1130,33 +1492,54 @@ app.get("/api/auth/me", (req: Request, res: Response) => {
         email: "admin@university.edu.bd",
         role: "admin",
         title: "University Head of Placement & Corporate Relations"
+      },
+      session: {
+        token: session.token,
+        createdAt: session.createdAt,
+        lastActiveAt: session.lastActiveAt
       }
     });
   }
 
   // Student Check
-  const student = dataStore.students.find(s => 
-    (token && token.includes(s.id)) || 
-    (email && s.email.toLowerCase() === email)
-  );
-  if (student) {
+  if (session.role === "student") {
+    const student = dataStore.students.find(s => s.id === session.userId || s.email.toLowerCase() === session.email.toLowerCase());
+    if (!student) {
+      return res.status(401).json({ authenticated: false, error: "Student account not found." });
+    }
+    if (student.status === "suspended") {
+      return res.status(403).json({ authenticated: false, error: "Student account suspended." });
+    }
     return res.json({
       authenticated: true,
       role: "student",
-      user: student
+      user: student,
+      session: {
+        token: session.token,
+        createdAt: session.createdAt,
+        lastActiveAt: session.lastActiveAt
+      }
     });
   }
 
   // Company Check
-  const comp = dataStore.companies.find(c => 
-    (token && token.includes(c.id)) || 
-    (email && (c.email.toLowerCase() === email || c.hrEmail?.toLowerCase() === email))
-  );
-  if (comp) {
+  if (session.role === "company") {
+    const comp = dataStore.companies.find(c => c.id === session.userId || c.email.toLowerCase() === session.email.toLowerCase());
+    if (!comp) {
+      return res.status(401).json({ authenticated: false, error: "Company account not found." });
+    }
+    if (comp.status === "suspended") {
+      return res.status(403).json({ authenticated: false, error: "Company account suspended." });
+    }
     return res.json({
       authenticated: true,
       role: "company",
-      user: comp
+      user: comp,
+      session: {
+        token: session.token,
+        createdAt: session.createdAt,
+        lastActiveAt: session.lastActiveAt
+      }
     });
   }
 
@@ -1190,7 +1573,7 @@ app.post("/api/auth/register", (req: Request, res: Response) => {
     return res.status(409).json({ error: "An account with this email is already registered. Please sign in instead." });
   }
 
-  const verificationToken = "vfy_" + Math.random().toString(36).substring(2) + Date.now().toString(36);
+  const verificationToken = "vfy_" + crypto.randomBytes(16).toString("hex");
 
   if (role === "company") {
     const newCompany: Company = {
@@ -1218,17 +1601,38 @@ app.post("/api/auth/register", (req: Request, res: Response) => {
       emailVerificationToken: verificationToken
     };
 
+    const sessionToken = "sess_comp_" + crypto.randomBytes(24).toString("hex") + "_" + Date.now();
+    const newSession: ActiveSession = {
+      token: sessionToken,
+      userId: newCompany.id,
+      role: "company",
+      email: normalizedEmail,
+      name: newCompany.name,
+      avatar: newCompany.logo,
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+      ip: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1",
+      userAgent: req.headers["user-agent"] || "Browser"
+    };
+
+    if (!Array.isArray(dataStore.sessions)) dataStore.sessions = [];
+    dataStore.sessions.unshift(newSession);
     dataStore.companies.unshift(newCompany);
+    logAuditEvent("USER_REGISTERED", `New company account registered: ${newCompany.name} (${normalizedEmail})`, req, {
+      email: normalizedEmail,
+      role: "company",
+      userId: newCompany.id,
+      status: "success"
+    });
     saveDatabase();
 
     const verifyUrl = `/pages/verify-email.html?token=${verificationToken}&email=${encodeURIComponent(normalizedEmail)}`;
-    console.log(`[AUTH] Verification email dispatched to company ${normalizedEmail}: ${verifyUrl}`);
 
     return res.status(201).json({
       success: true,
       role: "company",
       user: newCompany,
-      token: "jwt_company_" + newCompany.id,
+      token: sessionToken,
       message: "Company registered successfully! Verification email sent. Please check your inbox.",
       verifyUrl
     });
@@ -1281,17 +1685,38 @@ app.post("/api/auth/register", (req: Request, res: Response) => {
     emailVerificationToken: verificationToken
   };
 
+  const sessionToken = "sess_std_" + crypto.randomBytes(24).toString("hex") + "_" + Date.now();
+  const newSession: ActiveSession = {
+    token: sessionToken,
+    userId: newStudent.id,
+    role: "student",
+    email: normalizedEmail,
+    name: newStudent.name,
+    avatar: newStudent.avatar,
+    createdAt: new Date().toISOString(),
+    lastActiveAt: new Date().toISOString(),
+    ip: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1",
+    userAgent: req.headers["user-agent"] || "Browser"
+  };
+
+  if (!Array.isArray(dataStore.sessions)) dataStore.sessions = [];
+  dataStore.sessions.unshift(newSession);
   dataStore.students.unshift(newStudent);
+  logAuditEvent("USER_REGISTERED", `New student account registered: ${newStudent.name} (${normalizedEmail})`, req, {
+    email: normalizedEmail,
+    role: "student",
+    userId: newStudent.id,
+    status: "success"
+  });
   saveDatabase();
 
   const verifyUrl = `/pages/verify-email.html?token=${verificationToken}&email=${encodeURIComponent(normalizedEmail)}`;
-  console.log(`[AUTH] Verification email dispatched to student ${normalizedEmail}: ${verifyUrl}`);
 
   return res.status(201).json({
     success: true,
     role: "student",
     user: newStudent,
-    token: "jwt_student_" + newStudent.id,
+    token: sessionToken,
     message: "Student account created successfully! Verification email sent. Please check your inbox.",
     verifyUrl
   });
@@ -1480,29 +1905,93 @@ app.post("/api/auth/google", (req: Request, res: Response) => {
   // 1. Existing Student?
   const existingStudent = dataStore.students.find(s => s.email.toLowerCase() === normalizedEmail);
   if (existingStudent) {
+    if (existingStudent.status === "suspended") {
+      logAuditEvent("LOGIN_BLOCKED", `Blocked Google sign-in for suspended student ${normalizedEmail}`, req, {
+        email: normalizedEmail,
+        role: "student",
+        status: "error"
+      });
+      return res.status(403).json({ error: "Your student account has been suspended by the Placement Cell." });
+    }
     existingStudent.emailVerified = true;
     if (picture && !existingStudent.avatar?.includes("/uploads/")) {
       existingStudent.avatar = picture;
     }
+
+    const sessionToken = "sess_std_" + crypto.randomBytes(24).toString("hex") + "_" + Date.now();
+    const newSession: ActiveSession = {
+      token: sessionToken,
+      userId: existingStudent.id,
+      role: "student",
+      email: existingStudent.email,
+      name: existingStudent.name,
+      avatar: existingStudent.avatar,
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+      ip: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1",
+      userAgent: req.headers["user-agent"] || "Browser"
+    };
+
+    if (!Array.isArray(dataStore.sessions)) dataStore.sessions = [];
+    dataStore.sessions.unshift(newSession);
+    logAuditEvent("LOGIN_GOOGLE", `Student signed in via Google: ${existingStudent.email}`, req, {
+      email: existingStudent.email,
+      role: "student",
+      userId: existingStudent.id,
+      status: "success"
+    });
     saveDatabase();
+
     return res.json({
       success: true,
       role: "student",
       user: existingStudent,
-      token: "jwt_google_" + existingStudent.id
+      token: sessionToken
     });
   }
 
   // 2. Existing Company?
   const existingCompany = dataStore.companies.find(c => c.email.toLowerCase() === normalizedEmail || c.hrEmail?.toLowerCase() === normalizedEmail);
   if (existingCompany) {
+    if (existingCompany.status === "suspended") {
+      logAuditEvent("LOGIN_BLOCKED", `Blocked Google sign-in for suspended company ${normalizedEmail}`, req, {
+        email: normalizedEmail,
+        role: "company",
+        status: "error"
+      });
+      return res.status(403).json({ error: "Your company account has been suspended." });
+    }
     existingCompany.emailVerified = true;
+
+    const sessionToken = "sess_comp_" + crypto.randomBytes(24).toString("hex") + "_" + Date.now();
+    const newSession: ActiveSession = {
+      token: sessionToken,
+      userId: existingCompany.id,
+      role: "company",
+      email: existingCompany.email,
+      name: existingCompany.name,
+      avatar: existingCompany.logo,
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+      ip: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1",
+      userAgent: req.headers["user-agent"] || "Browser"
+    };
+
+    if (!Array.isArray(dataStore.sessions)) dataStore.sessions = [];
+    dataStore.sessions.unshift(newSession);
+    logAuditEvent("LOGIN_GOOGLE", `Company signed in via Google: ${existingCompany.email}`, req, {
+      email: existingCompany.email,
+      role: "company",
+      userId: existingCompany.id,
+      status: "success"
+    });
     saveDatabase();
+
     return res.json({
       success: true,
       role: "company",
       user: existingCompany,
-      token: "jwt_google_" + existingCompany.id
+      token: sessionToken
     });
   }
 
@@ -1530,13 +2019,37 @@ app.post("/api/auth/google", (req: Request, res: Response) => {
       socials: {},
       emailVerified: true
     };
+
+    const sessionToken = "sess_comp_" + crypto.randomBytes(24).toString("hex") + "_" + Date.now();
+    const newSession: ActiveSession = {
+      token: sessionToken,
+      userId: newCompany.id,
+      role: "company",
+      email: normalizedEmail,
+      name: newCompany.name,
+      avatar: newCompany.logo,
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+      ip: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1",
+      userAgent: req.headers["user-agent"] || "Browser"
+    };
+
+    if (!Array.isArray(dataStore.sessions)) dataStore.sessions = [];
+    dataStore.sessions.unshift(newSession);
     dataStore.companies.unshift(newCompany);
+    logAuditEvent("USER_REGISTERED_GOOGLE", `Company created via Google: ${newCompany.name} (${normalizedEmail})`, req, {
+      email: normalizedEmail,
+      role: "company",
+      userId: newCompany.id,
+      status: "success"
+    });
     saveDatabase();
+
     return res.json({
       success: true,
       role: "company",
       user: newCompany,
-      token: "jwt_google_" + newCompany.id
+      token: sessionToken
     });
   } else {
     const newStudent: Student = {
@@ -1578,23 +2091,47 @@ app.post("/api/auth/google", (req: Request, res: Response) => {
       status: "active",
       emailVerified: true
     };
+
+    const sessionToken = "sess_std_" + crypto.randomBytes(24).toString("hex") + "_" + Date.now();
+    const newSession: ActiveSession = {
+      token: sessionToken,
+      userId: newStudent.id,
+      role: "student",
+      email: normalizedEmail,
+      name: newStudent.name,
+      avatar: newStudent.avatar,
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+      ip: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1",
+      userAgent: req.headers["user-agent"] || "Browser"
+    };
+
+    if (!Array.isArray(dataStore.sessions)) dataStore.sessions = [];
+    dataStore.sessions.unshift(newSession);
     dataStore.students.unshift(newStudent);
+    logAuditEvent("USER_REGISTERED_GOOGLE", `Student created via Google: ${newStudent.name} (${normalizedEmail})`, req, {
+      email: normalizedEmail,
+      role: "student",
+      userId: newStudent.id,
+      status: "success"
+    });
     saveDatabase();
+
     return res.json({
       success: true,
       role: "student",
       user: newStudent,
-      token: "jwt_google_" + newStudent.id
+      token: sessionToken
     });
   }
 });
 
-// Unified Real Authentication Endpoint (Strict Credential Check)
+// Unified Real Authentication Endpoint (Strict Credential Check & Session Generation)
 app.post("/api/auth/login", (req: Request, res: Response) => {
   const { email, password, role } = req.body;
 
-  if (!email) {
-    return res.status(400).json({ error: "Email address is required." });
+  if (!email || !password) {
+    return res.status(400).json({ error: "Both email address and password are required." });
   }
 
   const normalizedEmail = (email || "").trim().toLowerCase();
@@ -1603,11 +2140,45 @@ app.post("/api/auth/login", (req: Request, res: Response) => {
   // 1. Admin Authentication
   if (role === "admin" || normalizedEmail === "admin@university.edu.bd") {
     if (normalizedEmail !== "admin@university.edu.bd") {
+      logAuditEvent("LOGIN_FAILED", `Failed admin login attempt: Unknown email ${normalizedEmail}`, req, {
+        email: normalizedEmail,
+        role: "admin",
+        status: "warning"
+      });
       return res.status(404).json({ error: "No administrator account exists with this email address." });
     }
-    if (rawPassword && rawPassword !== "admin123" && rawPassword !== "admin2026") {
+    if (rawPassword !== "admin123" && rawPassword !== "admin2026") {
+      logAuditEvent("LOGIN_FAILED", `Failed admin login attempt: Incorrect password for ${normalizedEmail}`, req, {
+        email: normalizedEmail,
+        role: "admin",
+        status: "warning"
+      });
       return res.status(401).json({ error: "Incorrect administrator password. Please try again." });
     }
+
+    const sessionToken = "sess_admin_" + crypto.randomBytes(24).toString("hex") + "_" + Date.now();
+    const newSession: ActiveSession = {
+      token: sessionToken,
+      userId: "admin-01",
+      role: "admin",
+      email: "admin@university.edu.bd",
+      name: "Dr. Placement Director",
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+      ip: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1",
+      userAgent: req.headers["user-agent"] || "Browser"
+    };
+
+    if (!Array.isArray(dataStore.sessions)) dataStore.sessions = [];
+    dataStore.sessions.unshift(newSession);
+    logAuditEvent("LOGIN_SUCCESS", `Administrator authenticated: admin@university.edu.bd`, req, {
+      email: "admin@university.edu.bd",
+      role: "admin",
+      userId: "admin-01",
+      status: "success"
+    });
+    saveDatabase();
+
     return res.json({
       success: true,
       role: "admin",
@@ -1618,7 +2189,7 @@ app.post("/api/auth/login", (req: Request, res: Response) => {
         role: "admin",
         title: "University Head of Placement & Corporate Relations"
       },
-      token: "jwt_admin_session_token"
+      token: sessionToken
     });
   }
 
@@ -1629,16 +2200,59 @@ app.post("/api/auth/login", (req: Request, res: Response) => {
       c.hrEmail?.toLowerCase() === normalizedEmail
     );
     if (!comp) {
+      logAuditEvent("LOGIN_FAILED", `Failed company login: ${normalizedEmail} not found`, req, {
+        email: normalizedEmail,
+        role: "company",
+        status: "warning"
+      });
       return res.status(404).json({ error: "No company account found for \"" + email + "\". Please register your company first." });
     }
-    if (comp.password && rawPassword && comp.password !== rawPassword && rawPassword !== "company123") {
+    if (comp.status === "suspended") {
+      logAuditEvent("LOGIN_BLOCKED", `Blocked login for suspended company ${normalizedEmail}`, req, {
+        email: normalizedEmail,
+        role: "company",
+        status: "error"
+      });
+      return res.status(403).json({ error: "This corporate account has been suspended by the Placement Cell." });
+    }
+    if (comp.password && comp.password !== rawPassword && rawPassword !== "company123") {
+      logAuditEvent("LOGIN_FAILED", `Failed company login: Incorrect password for ${normalizedEmail}`, req, {
+        email: normalizedEmail,
+        role: "company",
+        status: "warning"
+      });
       return res.status(401).json({ error: "Incorrect password for company portal. Please check your credentials." });
     }
+
+    const sessionToken = "sess_comp_" + crypto.randomBytes(24).toString("hex") + "_" + Date.now();
+    const newSession: ActiveSession = {
+      token: sessionToken,
+      userId: comp.id,
+      role: "company",
+      email: comp.email,
+      name: comp.name,
+      avatar: comp.logo,
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+      ip: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1",
+      userAgent: req.headers["user-agent"] || "Browser"
+    };
+
+    if (!Array.isArray(dataStore.sessions)) dataStore.sessions = [];
+    dataStore.sessions.unshift(newSession);
+    logAuditEvent("LOGIN_SUCCESS", `Company signed in: ${comp.name} (${comp.email})`, req, {
+      email: comp.email,
+      role: "company",
+      userId: comp.id,
+      status: "success"
+    });
+    saveDatabase();
+
     return res.json({
       success: true,
       role: "company",
       user: comp,
-      token: "jwt_company_" + comp.id
+      token: sessionToken
     });
   }
 
@@ -1649,18 +2263,61 @@ app.post("/api/auth/login", (req: Request, res: Response) => {
       s.studentId?.toLowerCase() === normalizedEmail
     );
     if (!student) {
+      logAuditEvent("LOGIN_FAILED", `Failed student login: ${normalizedEmail} not found`, req, {
+        email: normalizedEmail,
+        role: "student",
+        status: "warning"
+      });
       return res.status(404).json({ 
         error: "No student account found for \"" + email + "\". You must create an account first!" 
       });
     }
-    if (student.password && rawPassword && student.password !== rawPassword && rawPassword !== "password123") {
-      return res.status(401).json({ error: "Incorrect password! Please check your password." });
+    if (student.status === "suspended") {
+      logAuditEvent("LOGIN_BLOCKED", `Blocked login for suspended student ${normalizedEmail}`, req, {
+        email: normalizedEmail,
+        role: "student",
+        status: "error"
+      });
+      return res.status(403).json({ error: "This student account has been suspended by the Placement Cell." });
     }
+    if (student.password && student.password !== rawPassword && rawPassword !== "password123") {
+      logAuditEvent("LOGIN_FAILED", `Failed student login: Incorrect password for ${normalizedEmail}`, req, {
+        email: normalizedEmail,
+        role: "student",
+        status: "warning"
+      });
+      return res.status(401).json({ error: "Incorrect password! Please check your credentials." });
+    }
+
+    const sessionToken = "sess_std_" + crypto.randomBytes(24).toString("hex") + "_" + Date.now();
+    const newSession: ActiveSession = {
+      token: sessionToken,
+      userId: student.id,
+      role: "student",
+      email: student.email,
+      name: student.name,
+      avatar: student.avatar,
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+      ip: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1",
+      userAgent: req.headers["user-agent"] || "Browser"
+    };
+
+    if (!Array.isArray(dataStore.sessions)) dataStore.sessions = [];
+    dataStore.sessions.unshift(newSession);
+    logAuditEvent("LOGIN_SUCCESS", `Student signed in: ${student.name} (${student.email})`, req, {
+      email: student.email,
+      role: "student",
+      userId: student.id,
+      status: "success"
+    });
+    saveDatabase();
+
     return res.json({
       success: true,
       role: "student",
       user: student,
-      token: "jwt_student_" + student.id
+      token: sessionToken
     });
   }
 
@@ -1670,14 +2327,42 @@ app.post("/api/auth/login", (req: Request, res: Response) => {
     s.studentId?.toLowerCase() === normalizedEmail
   );
   if (student) {
-    if (student.password && rawPassword && student.password !== rawPassword && rawPassword !== "password123") {
+    if (student.status === "suspended") {
+      return res.status(403).json({ error: "This student account is suspended." });
+    }
+    if (student.password && student.password !== rawPassword && rawPassword !== "password123") {
       return res.status(401).json({ error: "Incorrect password! Please check your credentials." });
     }
+
+    const sessionToken = "sess_std_" + crypto.randomBytes(24).toString("hex") + "_" + Date.now();
+    const newSession: ActiveSession = {
+      token: sessionToken,
+      userId: student.id,
+      role: "student",
+      email: student.email,
+      name: student.name,
+      avatar: student.avatar,
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+      ip: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1",
+      userAgent: req.headers["user-agent"] || "Browser"
+    };
+
+    if (!Array.isArray(dataStore.sessions)) dataStore.sessions = [];
+    dataStore.sessions.unshift(newSession);
+    logAuditEvent("LOGIN_SUCCESS", `Student signed in: ${student.name} (${student.email})`, req, {
+      email: student.email,
+      role: "student",
+      userId: student.id,
+      status: "success"
+    });
+    saveDatabase();
+
     return res.json({
       success: true,
       role: "student",
       user: student,
-      token: "jwt_student_" + student.id
+      token: sessionToken
     });
   }
 
@@ -1686,24 +2371,144 @@ app.post("/api/auth/login", (req: Request, res: Response) => {
     c.hrEmail?.toLowerCase() === normalizedEmail
   );
   if (comp) {
-    if (comp.password && rawPassword && comp.password !== rawPassword && rawPassword !== "company123") {
+    if (comp.status === "suspended") {
+      return res.status(403).json({ error: "This company account is suspended." });
+    }
+    if (comp.password && comp.password !== rawPassword && rawPassword !== "company123") {
       return res.status(401).json({ error: "Incorrect password for company portal." });
     }
+
+    const sessionToken = "sess_comp_" + crypto.randomBytes(24).toString("hex") + "_" + Date.now();
+    const newSession: ActiveSession = {
+      token: sessionToken,
+      userId: comp.id,
+      role: "company",
+      email: comp.email,
+      name: comp.name,
+      avatar: comp.logo,
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+      ip: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1",
+      userAgent: req.headers["user-agent"] || "Browser"
+    };
+
+    if (!Array.isArray(dataStore.sessions)) dataStore.sessions = [];
+    dataStore.sessions.unshift(newSession);
+    logAuditEvent("LOGIN_SUCCESS", `Company signed in: ${comp.name} (${comp.email})`, req, {
+      email: comp.email,
+      role: "company",
+      userId: comp.id,
+      status: "success"
+    });
+    saveDatabase();
+
     return res.json({
       success: true,
       role: "company",
       user: comp,
-      token: "jwt_company_" + comp.id
+      token: sessionToken
     });
   }
 
+  logAuditEvent("LOGIN_FAILED", `Login attempt failed: ${normalizedEmail} not found`, req, {
+    email: normalizedEmail,
+    status: "warning"
+  });
   return res.status(404).json({
     error: "No account registered with \"" + email + "\". Please create your account first to log in!"
   });
 });
 
+// Explicit Logout Endpoint (Revokes server-side session)
+app.post("/api/auth/logout", (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim() || (req.headers["x-session-token"] as string) || (req.body?.token as string) || "";
+
+  if (token && Array.isArray(dataStore.sessions)) {
+    const session = dataStore.sessions.find(s => s.token === token);
+    if (session) {
+      logAuditEvent("LOGOUT", `User signed out: ${session.email} (${session.role})`, req, {
+        email: session.email,
+        role: session.role,
+        userId: session.userId,
+        status: "success"
+      });
+      dataStore.sessions = dataStore.sessions.filter(s => s.token !== token);
+      saveDatabase();
+    }
+  }
+
+  return res.json({ success: true, message: "Session terminated successfully." });
+});
+
+// Admin Active Sessions Endpoint (Real-time monitoring)
+app.get("/api/admin/sessions", (req: Request, res: Response) => {
+  const session = getSessionFromRequest(req);
+  if (!session || session.role !== "admin") {
+    return res.status(403).json({ error: "Access denied. Administrator privileges required." });
+  }
+
+  const activeSessions = (dataStore.sessions || []).map(s => ({
+    token: s.token,
+    userId: s.userId,
+    name: s.name,
+    email: s.email,
+    role: s.role,
+    avatar: s.avatar,
+    createdAt: s.createdAt,
+    lastActiveAt: s.lastActiveAt,
+    ip: s.ip,
+    userAgent: s.userAgent
+  }));
+
+  return res.json({
+    sessions: activeSessions,
+    count: activeSessions.length
+  });
+});
+
+// Admin Revoke Active Session Endpoint
+app.delete("/api/admin/sessions/:token", (req: Request, res: Response) => {
+  const session = getSessionFromRequest(req);
+  if (!session || session.role !== "admin") {
+    return res.status(403).json({ error: "Access denied. Administrator privileges required." });
+  }
+
+  const tokenToRevoke = req.params.token;
+  if (!tokenToRevoke) return res.status(400).json({ error: "Token required." });
+
+  if (Array.isArray(dataStore.sessions)) {
+    const target = dataStore.sessions.find(s => s.token === tokenToRevoke);
+    dataStore.sessions = dataStore.sessions.filter(s => s.token !== tokenToRevoke);
+    logAuditEvent("SESSION_REVOKED", `Administrator revoked session for: ${target?.email || tokenToRevoke}`, req, {
+      role: "admin",
+      status: "warning"
+    });
+    saveDatabase();
+  }
+
+  return res.json({ success: true, message: "Session revoked successfully." });
+});
+
+// Admin Audit Logs Endpoint
+app.get("/api/admin/audit-logs", (req: Request, res: Response) => {
+  const session = getSessionFromRequest(req);
+  if (!session || session.role !== "admin") {
+    return res.status(403).json({ error: "Access denied. Administrator privileges required." });
+  }
+
+  return res.json({
+    logs: (dataStore.auditLogs || []).slice(0, 100)
+  });
+});
+
 // Admin User Management & Platform Administration
 app.get("/api/admin/users", (req: Request, res: Response) => {
+  const session = getSessionFromRequest(req);
+  if (!session || session.role !== "admin") {
+    return res.status(403).json({ error: "Access denied. Administrator privileges required." });
+  }
+
   res.json({
     students: dataStore.students,
     companies: dataStore.companies,
@@ -1717,6 +2522,11 @@ app.get("/api/admin/users", (req: Request, res: Response) => {
 });
 
 app.patch("/api/admin/users/:role/:id/status", (req: Request, res: Response) => {
+  const session = getSessionFromRequest(req);
+  if (!session || session.role !== "admin") {
+    return res.status(403).json({ error: "Access denied. Administrator privileges required." });
+  }
+
   const { role, id } = req.params;
   const { status } = req.body;
 
@@ -1724,6 +2534,10 @@ app.patch("/api/admin/users/:role/:id/status", (req: Request, res: Response) => 
     const student = dataStore.students.find(s => s.id === id);
     if (!student) return res.status(404).json({ error: "Student not found" });
     student.status = status;
+    logAuditEvent("USER_STATUS_CHANGE", `Admin changed student ${student.email} status to ${status}`, req, {
+      role: "admin",
+      status: "warning"
+    });
     saveDatabase();
     return res.json({ success: true, user: student });
   } else if (role === "company") {
@@ -1731,6 +2545,10 @@ app.patch("/api/admin/users/:role/:id/status", (req: Request, res: Response) => 
     if (!company) return res.status(404).json({ error: "Company not found" });
     company.status = status;
     if (status === "active") company.verified = true;
+    logAuditEvent("USER_STATUS_CHANGE", `Admin changed company ${company.name} status to ${status}`, req, {
+      role: "admin",
+      status: "warning"
+    });
     saveDatabase();
     return res.json({ success: true, user: company });
   }
@@ -1740,12 +2558,23 @@ app.patch("/api/admin/users/:role/:id/status", (req: Request, res: Response) => 
 
 // Admin Company Verification & Approval Endpoint
 app.patch("/api/admin/verify-company/:id", (req: Request, res: Response) => {
+  const session = getSessionFromRequest(req);
+  if (!session || session.role !== "admin") {
+    return res.status(403).json({ error: "Access denied. Administrator privileges required." });
+  }
+
   const company = dataStore.companies.find(c => c.id === req.params.id);
   if (!company) return res.status(404).json({ error: "Company not found" });
   
   const isApproved = req.body.verified !== undefined ? Boolean(req.body.verified) : true;
   company.verified = isApproved;
   company.status = isApproved ? "active" : "pending";
+
+  logAuditEvent("COMPANY_VERIFIED", `Admin verified company ${company.name}: approved=${isApproved}`, req, {
+    role: "admin",
+    status: "success"
+  });
+
   saveDatabase();
 
   // Notify company
@@ -1766,17 +2595,33 @@ app.patch("/api/admin/verify-company/:id", (req: Request, res: Response) => {
 });
 
 app.delete("/api/admin/internships/:id", (req: Request, res: Response) => {
+  const session = getSessionFromRequest(req);
+  if (!session || session.role !== "admin") {
+    return res.status(403).json({ error: "Access denied. Administrator privileges required." });
+  }
+
   const initialLen = dataStore.internships.length;
   dataStore.internships = dataStore.internships.filter(i => i.id !== req.params.id);
   if (dataStore.internships.length === initialLen) {
     return res.status(404).json({ error: "Internship post not found" });
   }
+
+  logAuditEvent("INTERNSHIP_ADMIN_DELETED", `Admin deleted internship ID ${req.params.id}`, req, {
+    role: "admin",
+    status: "warning"
+  });
+
   saveDatabase();
   res.json({ success: true, message: "Internship post removed by administrator." });
 });
 
 // Admin Broadcast & Actions
 app.post("/api/admin/broadcast", (req: Request, res: Response) => {
+  const session = getSessionFromRequest(req);
+  if (!session || session.role !== "admin") {
+    return res.status(403).json({ error: "Access denied. Administrator privileges required." });
+  }
+
   const { title, message, target } = req.body;
   const newNotification = {
     id: "notif-" + Date.now(),
@@ -1789,6 +2634,10 @@ app.post("/api/admin/broadcast", (req: Request, res: Response) => {
   };
 
   dataStore.notifications.unshift(newNotification);
+  logAuditEvent("ADMIN_BROADCAST", `Admin broadcasted announcement: "${newNotification.title}" to target ${newNotification.target}`, req, {
+    role: "admin",
+    status: "success"
+  });
   saveDatabase();
   res.json({ success: true, notification: newNotification });
 });

@@ -1,0 +1,1083 @@
+{
+  "internships": [
+    {
+      "id": "int-1790167484143",
+      "title": "Machine Learning Research Intern",
+      "company": "Apex AI Labs",
+      "logo": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80",
+      "category": "Data & AI",
+      "department": "Research & Development",
+      "location": "Dhaka, Bangladesh",
+      "workMode": "Hybrid",
+      "type": "Full-time",
+      "duration": "6 Months",
+      "stipend": "৳ 35,000 / month",
+      "stipendAmount": 35000,
+      "openings": 3,
+      "postedDate": "2026-09-23",
+      "deadline": "2026-10-15",
+      "skills": [
+        "PyTorch",
+        "Python",
+        "Transformers",
+        "LLMs"
+      ],
+      "featured": false,
+      "status": "active",
+      "description": "Conduct cutting-edge fine-tuning and retrieval-augmented generation experiments.",
+      "responsibilities": [],
+      "qualifications": [],
+      "preferredSkills": [],
+      "benefits": [],
+      "companyInfo": {
+        "name": "Apex AI Labs"
+      }
+    },
+    {
+      "id": "int-101",
+      "title": "Frontend Developer Intern",
+      "company": "TechNova Solutions",
+      "logo": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80",
+      "category": "Software & Development",
+      "department": "Engineering",
+      "location": "Dhaka, Bangladesh",
+      "workMode": "Hybrid",
+      "type": "Full-time",
+      "duration": "3 Months",
+      "stipend": "৳ 25,000 / month",
+      "stipendAmount": 25000,
+      "openings": 3,
+      "postedDate": "2026-08-20",
+      "deadline": "2026-09-25",
+      "skills": [
+        "HTML",
+        "CSS",
+        "JavaScript",
+        "React",
+        "Tailwind CSS"
+      ],
+      "featured": true,
+      "status": "active",
+      "description": "Join our fast-paced product engineering team to build scalable, reactive web portals for enterprise fintech clients.",
+      "responsibilities": [
+        "Develop modular React components following modern state management best practices.",
+        "Collaborate with UI/UX designers to translate Figma prototypes into pixel-perfect responsive layouts."
+      ],
+      "qualifications": [
+        "Currently pursuing B.Sc in CSE, SWE, or related disciplines (3rd/4th year).",
+        "Strong foundation in HTML5, modern ES6+ JavaScript, and responsive CSS/Tailwind."
+      ],
+      "preferredSkills": [
+        "TypeScript",
+        "Next.js",
+        "RESTful API Integration"
+      ],
+      "benefits": [
+        "Certificate of Completion",
+        "Full-time Job Offer upon performance",
+        "Mentorship"
+      ],
+      "companyInfo": {
+        "name": "TechNova Solutions",
+        "industry": "Software & Cloud Services",
+        "size": "150-500 Employees",
+        "location": "Gulshan-2, Dhaka"
+      }
+    },
+    {
+      "id": "int-102",
+      "title": "Backend Developer Intern (Node.js/Python)",
+      "company": "ByteCraft",
+      "logo": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=100&auto=format&fit=crop&q=80",
+      "category": "Software & Development",
+      "department": "Backend Engineering",
+      "location": "Remote",
+      "workMode": "Remote",
+      "type": "Full-time",
+      "duration": "6 Months",
+      "stipend": "৳ 28,000 / month",
+      "stipendAmount": 28000,
+      "openings": 2,
+      "postedDate": "2026-08-25",
+      "deadline": "2026-09-30",
+      "skills": [
+        "Node.js",
+        "Python",
+        "SQL",
+        "Express",
+        "REST API"
+      ],
+      "featured": true,
+      "status": "active",
+      "description": "Work on mission-critical microservices and database pipelines.",
+      "responsibilities": [
+        "Build and document robust RESTful & GraphQL endpoints."
+      ],
+      "qualifications": [
+        "Undergraduate student in Computer Science or Software Engineering."
+      ],
+      "preferredSkills": [
+        "Docker",
+        "PostgreSQL",
+        "Redis"
+      ],
+      "benefits": [
+        "Remote work stipend",
+        "Course reimbursement"
+      ],
+      "companyInfo": {
+        "name": "ByteCraft",
+        "industry": "Fintech & Developer Tools",
+        "size": "50-100 Employees",
+        "location": "Banani, Dhaka"
+      }
+    },
+    {
+      "id": "int-103",
+      "title": "Data Analyst & BI Intern",
+      "company": "DataSphere Analytics",
+      "logo": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=100&auto=format&fit=crop&q=80",
+      "category": "Data & AI",
+      "department": "Business Intelligence",
+      "location": "Dhaka, Bangladesh",
+      "workMode": "On-site",
+      "type": "Full-time",
+      "duration": "3 Months",
+      "stipend": "৳ 22,000 / month",
+      "stipendAmount": 22000,
+      "openings": 4,
+      "postedDate": "2026-08-22",
+      "deadline": "2026-09-28",
+      "skills": [
+        "Python",
+        "SQL",
+        "Tableau",
+        "Power BI",
+        "Excel"
+      ],
+      "featured": true,
+      "status": "active",
+      "description": "Transform complex operational data into actionable visual dashboards.",
+      "responsibilities": [
+        "Extract and clean large datasets using SQL and Python pandas."
+      ],
+      "qualifications": [
+        "Student in CSE, Data Science, or Statistics."
+      ],
+      "preferredSkills": [
+        "ETL",
+        "Pandas"
+      ],
+      "benefits": [
+        "Letter of recommendation",
+        "Stipend"
+      ],
+      "companyInfo": {
+        "name": "DataSphere Analytics",
+        "industry": "Data Consulting",
+        "size": "40 Employees",
+        "location": "Mohakhali DOHS, Dhaka"
+      }
+    },
+    {
+      "id": "int-104",
+      "title": "Junior Cybersecurity & SOC Analyst Intern",
+      "company": "ShieldGate Cyber Systems",
+      "logo": "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=100&auto=format&fit=crop&q=80",
+      "category": "Cybersecurity",
+      "department": "Security Operations Center",
+      "location": "Dhaka, Bangladesh",
+      "workMode": "Hybrid",
+      "type": "Full-time",
+      "duration": "4 Months",
+      "stipend": "৳ 26,000 / month",
+      "stipendAmount": 26000,
+      "openings": 2,
+      "postedDate": "2026-09-22",
+      "deadline": "2026-10-20",
+      "skills": [
+        "SIEM",
+        "Wireshark",
+        "Network Security",
+        "Linux",
+        "Penetration Testing"
+      ],
+      "featured": true,
+      "status": "active",
+      "description": "Monitor and analyze security event logs, investigate threat detections, and participate in vulnerability assessments.",
+      "responsibilities": [
+        "Monitor SIEM alerts and triage incident tickets.",
+        "Perform scheduled vulnerability scanning."
+      ],
+      "qualifications": [
+        "Enrolled in B.Sc. in CSE, Information Security, or related field.",
+        "Familiar with TCP/IP, OSI model, and Linux command line."
+      ],
+      "preferredSkills": [
+        "Security+",
+        "Splunk",
+        "Python"
+      ],
+      "benefits": [
+        "Hands-on SOC training",
+        "Security certification sponsorship",
+        "Certificate of Completion"
+      ],
+      "companyInfo": {
+        "name": "ShieldGate Cyber Systems",
+        "industry": "Information Security & Defense",
+        "size": "50-100 Employees",
+        "location": "Mohakhali, Dhaka"
+      }
+    },
+    {
+      "id": "int-105",
+      "title": "UI/UX & Product Design Intern",
+      "company": "PixelCraft Studios",
+      "logo": "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=100&auto=format&fit=crop&q=80",
+      "category": "Design",
+      "department": "Product Design",
+      "location": "Remote",
+      "workMode": "Remote",
+      "type": "Part-time",
+      "duration": "3 Months",
+      "stipend": "৳ 20,000 / month",
+      "stipendAmount": 20000,
+      "openings": 2,
+      "postedDate": "2026-09-21",
+      "deadline": "2026-10-18",
+      "skills": [
+        "Figma",
+        "Wireframing",
+        "User Research",
+        "Prototyping",
+        "Design Systems"
+      ],
+      "featured": true,
+      "status": "active",
+      "description": "Collaborate with product managers and engineers to design clean, intuitive interfaces and interactive design prototypes.",
+      "responsibilities": [
+        "Create high-fidelity wireframes and interactive prototypes in Figma.",
+        "Conduct usability test sessions with users."
+      ],
+      "qualifications": [
+        "Student with an active design portfolio demonstrating UI/UX case studies.",
+        "Proficiency with Figma."
+      ],
+      "preferredSkills": [
+        "Micro-interactions",
+        "HTML/CSS basics"
+      ],
+      "benefits": [
+        "Remote work flexibility",
+        "Portfolio review with Principal Designer",
+        "Monthly book allowance"
+      ],
+      "companyInfo": {
+        "name": "PixelCraft Studios",
+        "industry": "Creative Design & Tech",
+        "size": "20-50 Employees",
+        "location": "Dhanmondi, Dhaka"
+      }
+    },
+    {
+      "id": "int-106",
+      "title": "Associate Product Management Intern",
+      "company": "Apex Horizon Technologies",
+      "logo": "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=100&auto=format&fit=crop&q=80",
+      "category": "Business",
+      "department": "Product Management",
+      "location": "Dhaka, Bangladesh",
+      "workMode": "On-site",
+      "type": "Full-time",
+      "duration": "6 Months",
+      "stipend": "৳ 25,000 / month",
+      "stipendAmount": 25000,
+      "openings": 2,
+      "postedDate": "2026-09-20",
+      "deadline": "2026-10-25",
+      "skills": [
+        "Agile",
+        "Jira",
+        "User Stories",
+        "Market Research",
+        "Product Analytics"
+      ],
+      "featured": true,
+      "status": "active",
+      "description": "Help define product roadmaps, conduct competitive market analysis, and coordinate sprint deliverables across cross-functional teams.",
+      "responsibilities": [
+        "Draft PRDs and user stories for engineering sprints.",
+        "Track release metrics and feature adoption."
+      ],
+      "qualifications": [
+        "B.Sc or BBA with technical inclination, 3rd/4th year student.",
+        "Strong problem-solving and presentation skills."
+      ],
+      "preferredSkills": [
+        "SQL",
+        "Google Analytics",
+        "Mixpanel"
+      ],
+      "benefits": [
+        "Executive mentorship",
+        "Full-time placement opportunity",
+        "Daily catered meals"
+      ],
+      "companyInfo": {
+        "name": "Apex Horizon Technologies",
+        "industry": "Enterprise SaaS",
+        "size": "100-250 Employees",
+        "location": "Gulshan-1, Dhaka"
+      }
+    },
+    {
+      "id": "int-107",
+      "title": "Digital Growth & Content Marketing Intern",
+      "company": "Vanguard Growth Labs",
+      "logo": "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=100&auto=format&fit=crop&q=80",
+      "category": "Marketing",
+      "department": "Growth & Marketing",
+      "location": "Dhaka, Bangladesh",
+      "workMode": "Hybrid",
+      "type": "Full-time",
+      "duration": "3 Months",
+      "stipend": "৳ 22,000 / month",
+      "stipendAmount": 22000,
+      "openings": 3,
+      "postedDate": "2026-09-24",
+      "deadline": "2026-10-30",
+      "skills": [
+        "SEO",
+        "Content Strategy",
+        "Social Media",
+        "Copywriting",
+        "Email Campaigns"
+      ],
+      "featured": false,
+      "status": "active",
+      "description": "Execute multichannel digital acquisition campaigns, technical content writing, and community engagement for tech startups.",
+      "responsibilities": [
+        "Draft tech blog posts and SEO-optimized case studies.",
+        "Manage brand social channels and track conversion funnels."
+      ],
+      "qualifications": [
+        "CSE, Media, or Business student with strong written English communication.",
+        "Familiarity with digital marketing tools."
+      ],
+      "preferredSkills": [
+        "Canva",
+        "Google Search Console",
+        "WordPress"
+      ],
+      "benefits": [
+        "Real-world growth marketing experience",
+        "Official recommendation letter",
+        "Performance bonuses"
+      ],
+      "companyInfo": {
+        "name": "Vanguard Growth Labs",
+        "industry": "Growth Marketing & Media",
+        "size": "30-50 Employees",
+        "location": "Uttara, Dhaka"
+      }
+    }
+  ],
+  "applications": [
+    {
+      "id": "app-1790255103272",
+      "internshipId": "int-101",
+      "companyId": "comp-technovasolutions",
+      "studentId": "std-1790255088626",
+      "studentName": "Test Student",
+      "studentEmail": "test.student@univ.edu",
+      "studentPhone": "+880 1700-000000",
+      "studentUniversity": "University Department of Computer Science & Engineering",
+      "studentDepartment": "Computer Science & Engineering",
+      "studentCgpa": "3.75",
+      "studentPhoto": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
+      "jobTitle": "Frontend Developer Intern",
+      "company": "TechNova Solutions",
+      "companyLogo": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80",
+      "appliedDate": "2026-09-24",
+      "status": "Applied",
+      "resumeName": "Test_Student_Resume.pdf",
+      "resumeUrl": "#",
+      "coverLetter": "I am passionate about software engineering.",
+      "availability": "Immediate",
+      "portfolioUrl": "",
+      "githubUrl": "",
+      "timeline": [
+        {
+          "step": "Applied",
+          "date": "2026-09-24",
+          "note": "Application submitted with resume and profile."
+        }
+      ]
+    },
+    {
+      "id": "app-301",
+      "internshipId": "int-101",
+      "studentId": "std-2022001",
+      "studentName": "Mehedi Hasan",
+      "studentEmail": "mehedi.hasan@university.edu",
+      "studentPhone": "+880 1712-345678",
+      "studentUniversity": "University of Computer Studies & Engineering",
+      "studentDepartment": "Computer Science & Engineering",
+      "studentCgpa": "3.75",
+      "studentPhoto": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
+      "jobTitle": "Frontend Developer Intern",
+      "company": "TechNova Solutions",
+      "companyLogo": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80",
+      "appliedDate": "2026-08-22",
+      "status": "Interview",
+      "resumeName": "Mehedi_Hasan_CSE_Resume_2026.pdf",
+      "coverLetter": "Excited to contribute frontend software engineering expertise.",
+      "availability": "Immediate",
+      "portfolioUrl": "https://mehedihasan.dev",
+      "timeline": [
+        {
+          "step": "Applied",
+          "date": "2026-08-22",
+          "note": "Application submitted with resume and cover letter."
+        },
+        {
+          "step": "Interview Scheduled",
+          "date": "2026-08-29",
+          "note": "Video interview scheduled."
+        }
+      ]
+    },
+    {
+      "id": "app-402",
+      "internshipId": "int-101",
+      "studentId": "std-2022045",
+      "studentName": "Ayesha Siddiqua",
+      "studentEmail": "ayesha.siddiqua@cse.buet.ac.bd",
+      "studentPhone": "+880 1823-456789",
+      "studentUniversity": "Bangladesh University of Engineering & Technology",
+      "studentDepartment": "Computer Science & Engineering",
+      "studentCgpa": "3.92",
+      "studentPhoto": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80",
+      "jobTitle": "Frontend Developer Intern",
+      "company": "TechNova Solutions",
+      "companyLogo": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80",
+      "appliedDate": "2026-08-23",
+      "status": "Shortlisted",
+      "resumeName": "Ayesha_Siddiqua_BUET_Resume.pdf",
+      "coverLetter": "Passionate about creating accessible and ultra-fast web user interfaces.",
+      "availability": "Immediate",
+      "portfolioUrl": "https://ayeshasiddiqua.me"
+    }
+  ],
+  "companies": [
+    {
+      "id": "comp-1790168211476",
+      "name": "TechNova Corporate Talent",
+      "tagline": "Innovative Technology Partner",
+      "industry": "Software & Technology",
+      "companySize": "50 - 150 Employees",
+      "website": "https://example.com",
+      "email": "recruiter.corporate@technova.io",
+      "phone": "+880 1800-000000",
+      "location": "Dhaka, Bangladesh",
+      "logo": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&auto=format&fit=crop&q=80",
+      "coverImage": "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&auto=format&fit=crop&q=80",
+      "hrName": "TechNova Corporate Talent",
+      "hrEmail": "recruiter.corporate@technova.io",
+      "hrPhone": "+880 1800-000000",
+      "founded": "2024",
+      "verified": true,
+      "status": "active",
+      "description": "Registered corporate employer providing technological internships.",
+      "socials": {},
+      "emailVerified": true,
+      "password": "company123"
+    },
+    {
+      "id": "comp-1790167484118",
+      "name": "Apex AI Labs",
+      "tagline": "Innovating Future Technologies",
+      "industry": "Artificial Intelligence & ML",
+      "companySize": "100-250 Employees",
+      "website": "https://apexai.example.com",
+      "email": "recruiter_1790167483996@techfirm.com",
+      "password": "CompanyPassword2026!",
+      "phone": "+880 1711-889900",
+      "location": "Dhaka, Bangladesh",
+      "logo": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&auto=format&fit=crop&q=80",
+      "coverImage": "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&auto=format&fit=crop&q=80",
+      "hrName": "Apex AI Labs",
+      "hrEmail": "recruiter_1790167483996@techfirm.com",
+      "hrPhone": "+880 1711-889900",
+      "founded": "2024",
+      "verified": false,
+      "status": "pending",
+      "description": "Corporate technology enterprise hiring talented students.",
+      "socials": {},
+      "emailVerified": false,
+      "emailVerificationToken": "vfy_juu7mcx8huhmue3hz2u"
+    },
+    {
+      "id": "comp-technova",
+      "name": "TechNova Solutions",
+      "tagline": "Empowering Enterprises with Scalable Cloud & AI Software",
+      "industry": "Software & Technology",
+      "companySize": "150-500 Employees",
+      "website": "https://technova.example.com",
+      "email": "recruitment@technova.io",
+      "password": "company123",
+      "phone": "+880 2-9876543",
+      "location": "Gulshan-2, Dhaka, Bangladesh",
+      "logo": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&auto=format&fit=crop&q=80",
+      "coverImage": "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&auto=format&fit=crop&q=80",
+      "hrName": "Farhan Ahmed",
+      "hrEmail": "farhan.hr@technova.io",
+      "hrPhone": "+880 1819-876543",
+      "founded": "2018",
+      "verified": true,
+      "status": "active",
+      "description": "TechNova Solutions is an international digital engineering powerhouse with offices in Dhaka and Singapore.",
+      "socials": {
+        "linkedin": "https://linkedin.com/company/technova-solutions"
+      }
+    },
+    {
+      "id": "comp-bytecraft",
+      "name": "ByteCraft",
+      "tagline": "Developer Tooling & High-Throughput Fintech Services",
+      "industry": "Fintech & Developer Tools",
+      "companySize": "50-100 Employees",
+      "website": "https://bytecraft.example.com",
+      "email": "talent@bytecraft.example.com",
+      "phone": "+880 1711-224466",
+      "location": "Banani, Dhaka, Bangladesh",
+      "logo": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=200&auto=format&fit=crop&q=80",
+      "coverImage": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80",
+      "hrName": "Tanvir Hasan",
+      "hrEmail": "tanvir.hr@bytecraft.example.com",
+      "hrPhone": "+880 1711-224466",
+      "founded": "2020",
+      "verified": true,
+      "status": "active",
+      "description": "ByteCraft builds modern developer tooling and fintech payment gateways serving clients across South Asia.",
+      "socials": {
+        "linkedin": "https://linkedin.com/company/bytecraft"
+      },
+      "password": "company123"
+    },
+    {
+      "id": "comp-cloudcore",
+      "name": "CloudCore Systems",
+      "tagline": "Kubernetes & Cloud Infrastructure Pioneers",
+      "industry": "Cloud & DevOps",
+      "companySize": "100-250 Employees",
+      "website": "https://cloudcore.example.com",
+      "email": "jobs@cloudcore.example.com",
+      "phone": "+880 1811-998877",
+      "location": "Uttara, Dhaka, Bangladesh",
+      "logo": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=200&auto=format&fit=crop&q=80",
+      "coverImage": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&auto=format&fit=crop&q=80",
+      "hrName": "Sarah Karim",
+      "hrEmail": "sarah.hr@cloudcore.example.com",
+      "hrPhone": "+880 1811-998877",
+      "founded": "2019",
+      "verified": true,
+      "status": "active",
+      "description": "CloudCore Systems provides enterprise Kubernetes orchestration, multicloud migration, and 24/7 SRE support.",
+      "socials": {
+        "linkedin": "https://linkedin.com/company/cloudcore"
+      },
+      "password": "company123"
+    },
+    {
+      "id": "comp-nexusai",
+      "name": "NexusAI Innovations",
+      "tagline": "Applied Generative AI & Autonomous Agent Systems",
+      "industry": "Artificial Intelligence",
+      "companySize": "30-60 Employees",
+      "website": "https://nexusai.example.com",
+      "email": "contact@nexusai.example.com",
+      "phone": "+880 1912-334455",
+      "location": "Dhanmondi, Dhaka, Bangladesh",
+      "logo": "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=200&auto=format&fit=crop&q=80",
+      "coverImage": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80",
+      "hrName": "Dr. Kazi Rahman",
+      "hrEmail": "kazi@nexusai.example.com",
+      "hrPhone": "+880 1912-334455",
+      "founded": "2023",
+      "verified": false,
+      "status": "pending",
+      "description": "NexusAI is an R&D laboratory building domain-specific LLM workflows for banking and telecom clients.",
+      "socials": {
+        "linkedin": "https://linkedin.com/company/nexusai"
+      },
+      "password": "company123"
+    }
+  ],
+  "students": [
+    {
+      "id": "std-1790255088626",
+      "name": "Test Student",
+      "studentId": "STD-422883",
+      "email": "test.student@univ.edu",
+      "password": "SecretPassword123!",
+      "phone": "+880 1700-000000",
+      "location": "Dhaka, Bangladesh",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
+      "university": "University Department of Computer Science & Engineering",
+      "department": "Computer Science & Engineering",
+      "semester": "7th Semester",
+      "cgpa": "3.75",
+      "graduationYear": "2027",
+      "bio": "Passionate undergraduate software engineer eager to apply skills in industrial internships.",
+      "skills": [
+        "JavaScript",
+        "React",
+        "Python",
+        "SQL"
+      ],
+      "languages": [
+        "English",
+        "Bangla"
+      ],
+      "socials": {
+        "github": "",
+        "linkedin": "",
+        "portfolio": ""
+      },
+      "education": [
+        {
+          "degree": "B.Sc in Computer Science & Engineering",
+          "institution": "University CSE Department",
+          "year": "2023 - 2027",
+          "grade": "CGPA: 3.75",
+          "description": "Enrolled student focusing on software engineering and algorithms."
+        }
+      ],
+      "experience": [],
+      "projects": [],
+      "certifications": [],
+      "resume": {
+        "fileName": "Test_Student_Resume.pdf",
+        "fileSize": "1.2 MB",
+        "uploadDate": "2026-09-24",
+        "status": "Verified",
+        "url": "#"
+      },
+      "status": "active",
+      "emailVerified": false,
+      "emailVerificationToken": "vfy_7a09875b1497a2874206a40bc1c632f8"
+    },
+    {
+      "id": "std-1790172363663",
+      "name": "Mehedi Hasan Ovi",
+      "studentId": "2024000000021",
+      "email": "mehedihasanovi22@gmail.com",
+      "password": "#@mehedi@#",
+      "phone": "01815489049",
+      "location": "Dhaka, Bangladesh",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
+      "university": "University Department of Computer Science & Engineering",
+      "department": "Computer Science & Engineering",
+      "semester": "8th Semester",
+      "cgpa": "3.45",
+      "graduationYear": "2026",
+      "bio": "Passionate Computer Science student looking for full-stack and AI internship opportunities.",
+      "skills": [
+        "ai"
+      ],
+      "languages": [
+        "English",
+        "Bangla"
+      ],
+      "socials": {
+        "github": "",
+        "linkedin": "",
+        "portfolio": ""
+      },
+      "education": [
+        {
+          "degree": "B.Sc in Computer Science & Engineering",
+          "institution": "University Department of Computer Science & Engineering",
+          "year": "2023 - 2026",
+          "grade": "CGPA: 3.45",
+          "description": "Enrolled student focusing on software engineering and algorithms."
+        }
+      ],
+      "experience": [],
+      "projects": [],
+      "certifications": [],
+      "resume": {
+        "fileName": "Mehedi_Hasan_Ovi_Resume.pdf",
+        "fileSize": "1.2 MB",
+        "uploadDate": "2026-09-23",
+        "status": "Verified",
+        "url": "#"
+      },
+      "status": "active",
+      "emailVerified": false,
+      "emailVerificationToken": "vfy_0a9hvsr2h4kamue6ek5r"
+    },
+    {
+      "id": "std-1790168112048",
+      "name": "Mehedi Hasan",
+      "studentId": "STD-825019",
+      "email": "mehedi.hasan.scholar@university.edu.bd",
+      "phone": "+880 1700-000000",
+      "location": "Dhaka, Bangladesh",
+      "avatar": "/uploads/img_1790168154532_o0rtih.png",
+      "university": "University Department of Computer Science & Engineering",
+      "department": "Computer Science & Engineering",
+      "semester": "7th Semester",
+      "cgpa": "3.75",
+      "graduationYear": "2027",
+      "bio": "Passionate undergraduate engineer eager to apply skills in industrial software internships.",
+      "skills": [
+        "JavaScript",
+        "React",
+        "Python",
+        "SQL"
+      ],
+      "languages": [
+        "English",
+        "Bangla"
+      ],
+      "socials": {
+        "github": "",
+        "linkedin": "",
+        "portfolio": ""
+      },
+      "education": [
+        {
+          "degree": "B.Sc in Computer Science & Engineering",
+          "institution": "University Department of Computer Science & Engineering",
+          "year": "2023 - 2027",
+          "grade": "CGPA: 3.75",
+          "description": "Active CS undergraduate student."
+        }
+      ],
+      "experience": [],
+      "projects": [],
+      "certifications": [],
+      "resume": {
+        "fileName": "Mehedi_Hasan_Resume.pdf",
+        "fileSize": "1.2 MB",
+        "uploadDate": "2026-09-23",
+        "status": "Verified",
+        "url": "#"
+      },
+      "status": "active",
+      "emailVerified": true,
+      "password": "password123"
+    },
+    {
+      "id": "std-1790167478252",
+      "name": "Tariqul Islam",
+      "studentId": "202609999",
+      "email": "tariqul_1790167478105@test.edu.bd",
+      "password": "NewSecretPassword2026!",
+      "phone": "+880 1700-000000",
+      "location": "Dhaka, Bangladesh",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
+      "university": "Dhaka University",
+      "department": "Computer Science & Engineering",
+      "semester": "7th Semester",
+      "cgpa": "3.75",
+      "graduationYear": "2027",
+      "bio": "Passionate undergraduate software engineer eager to apply skills in industrial internships.",
+      "skills": [
+        "JavaScript",
+        "React",
+        "Python",
+        "SQL"
+      ],
+      "languages": [
+        "English",
+        "Bangla"
+      ],
+      "socials": {
+        "github": "",
+        "linkedin": "",
+        "portfolio": ""
+      },
+      "education": [
+        {
+          "degree": "B.Sc in Computer Science & Engineering",
+          "institution": "Dhaka University",
+          "year": "2023 - 2027",
+          "grade": "CGPA: 3.75",
+          "description": "Enrolled student focusing on software engineering and algorithms."
+        }
+      ],
+      "experience": [],
+      "projects": [],
+      "certifications": [],
+      "resume": {
+        "fileName": "Tariqul_Islam_Resume.pdf",
+        "fileSize": "1.2 MB",
+        "uploadDate": "2026-09-23",
+        "status": "Verified",
+        "url": "#"
+      },
+      "status": "active",
+      "emailVerified": true
+    },
+    {
+      "id": "std-1790167460716",
+      "name": "Tariqul Islam",
+      "studentId": "202609999",
+      "email": "tariqul_1790167460592@test.edu.bd",
+      "password": "Password123!",
+      "phone": "+880 1700-000000",
+      "location": "Dhaka, Bangladesh",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
+      "university": "Dhaka University",
+      "department": "Computer Science & Engineering",
+      "semester": "7th Semester",
+      "cgpa": "3.75",
+      "graduationYear": "2027",
+      "bio": "Passionate undergraduate software engineer eager to apply skills in industrial internships.",
+      "skills": [
+        "JavaScript",
+        "React",
+        "Python",
+        "SQL"
+      ],
+      "languages": [
+        "English",
+        "Bangla"
+      ],
+      "socials": {
+        "github": "",
+        "linkedin": "",
+        "portfolio": ""
+      },
+      "education": [
+        {
+          "degree": "B.Sc in Computer Science & Engineering",
+          "institution": "Dhaka University",
+          "year": "2023 - 2027",
+          "grade": "CGPA: 3.75",
+          "description": "Enrolled student focusing on software engineering and algorithms."
+        }
+      ],
+      "experience": [],
+      "projects": [],
+      "certifications": [],
+      "resume": {
+        "fileName": "Tariqul_Islam_Resume.pdf",
+        "fileSize": "1.2 MB",
+        "uploadDate": "2026-09-23",
+        "status": "Verified",
+        "url": "#"
+      },
+      "status": "active"
+    },
+    {
+      "id": "std-1790167413490",
+      "name": "Tariqul Islam",
+      "studentId": "202609999",
+      "email": "testuser_1790167413355@test.edu.bd",
+      "password": "Password123!",
+      "phone": "+880 1700-000000",
+      "location": "Dhaka, Bangladesh",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
+      "university": "Dhaka University",
+      "department": "Computer Science & Engineering",
+      "semester": "7th Semester",
+      "cgpa": "3.75",
+      "graduationYear": "2027",
+      "bio": "Passionate undergraduate software engineer eager to apply skills in industrial internships.",
+      "skills": [
+        "JavaScript",
+        "React",
+        "Python",
+        "SQL"
+      ],
+      "languages": [
+        "English",
+        "Bangla"
+      ],
+      "socials": {
+        "github": "",
+        "linkedin": "",
+        "portfolio": ""
+      },
+      "education": [
+        {
+          "degree": "B.Sc in Computer Science & Engineering",
+          "institution": "Dhaka University",
+          "year": "2023 - 2027",
+          "grade": "CGPA: 3.75",
+          "description": "Enrolled student focusing on software engineering and algorithms."
+        }
+      ],
+      "experience": [],
+      "projects": [],
+      "certifications": [],
+      "resume": {
+        "fileName": "Tariqul_Islam_Resume.pdf",
+        "fileSize": "1.2 MB",
+        "uploadDate": "2026-09-23",
+        "status": "Verified",
+        "url": "#"
+      },
+      "status": "active"
+    },
+    {
+      "id": "std-2022001",
+      "name": "Mehedi Hasan",
+      "studentId": "CSE-2022-001",
+      "email": "mehedihasanovi222@gmail.com",
+      "password": "password123",
+      "phone": "+880 1712-345678",
+      "location": "Dhaka, Bangladesh",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
+      "university": "University Department of Computer Science & Engineering",
+      "department": "Computer Science & Engineering",
+      "semester": "7th Semester",
+      "cgpa": "3.75",
+      "graduationYear": "2027",
+      "bio": "Aspiring Full Stack & Frontend Software Engineer passionate about React, TypeScript, and distributed systems. Built real-world web applications with scalable backend architectures.",
+      "skills": [
+        "HTML5",
+        "CSS3",
+        "JavaScript",
+        "React",
+        "Node.js",
+        "Python",
+        "SQL",
+        "Tailwind CSS"
+      ],
+      "languages": [
+        "English",
+        "Bangla"
+      ],
+      "socials": {
+        "github": "https://github.com/mehedihasan",
+        "linkedin": "https://linkedin.com/in/mehedihasan",
+        "portfolio": "https://mehedihasan.dev"
+      },
+      "education": [
+        {
+          "degree": "B.Sc in Computer Science & Engineering",
+          "institution": "University Department of Computer Science & Engineering",
+          "year": "2023 - 2027",
+          "grade": "CGPA: 3.75 / 4.00",
+          "description": "Dean's List recipient. Active participant in ACM-ICPC competitive programming."
+        }
+      ],
+      "experience": [],
+      "projects": [],
+      "certifications": [],
+      "resume": {
+        "fileName": "Mehedi_Hasan_CSE_Resume_2026.pdf",
+        "status": "Verified"
+      },
+      "status": "active"
+    }
+  ],
+  "interviews": [
+    {
+      "id": "intv-501",
+      "applicationId": "app-301",
+      "studentId": "std-2022001",
+      "studentName": "Mehedi Hasan",
+      "company": "TechNova Solutions",
+      "position": "Frontend Developer Intern",
+      "date": "2026-09-05",
+      "time": "11:00 AM - 11:45 AM (BST)",
+      "type": "Google Meet",
+      "meetingLink": "https://meet.google.com/abc-intern-interview",
+      "status": "Upcoming",
+      "interviewer": "Farhan Ahmed & Tareq Hasan"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "notif-1790255103273",
+      "target": "company",
+      "title": "New Application Received 📄",
+      "message": "Test Student submitted an application for Frontend Developer Intern.",
+      "date": "2026-09-24 13:05",
+      "read": false,
+      "type": "applicant"
+    },
+    {
+      "id": "notif-1",
+      "target": "admin",
+      "title": "New Company Registered 🏢",
+      "message": "NexusAI Innovations submitted registration credentials for Placement Cell verification.",
+      "date": "2026-09-01 10:00 AM",
+      "read": false,
+      "type": "verification"
+    }
+  ],
+  "admin": {
+    "name": "Dr. Placement Director",
+    "email": "admin@university.edu.bd",
+    "role": "Super Administrator & Placement Officer",
+    "department": "University Career Development & Corporate Relations Cell"
+  },
+  "sessions": [
+    {
+      "token": "sess_std_327a28af4038e61b5c08cb8b24ed1269da45f4791d850f6d_1790255088626",
+      "userId": "std-1790255088626",
+      "role": "student",
+      "email": "test.student@univ.edu",
+      "name": "Test Student",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
+      "createdAt": "2026-09-24T13:04:48.626Z",
+      "lastActiveAt": "2026-09-24T13:05:03.272Z",
+      "ip": "127.0.0.1",
+      "userAgent": "curl/7.88.1"
+    }
+  ],
+  "auditLogs": [
+    {
+      "id": "log_1790255103272_966kp",
+      "action": "APPLICATION_SUBMITTED",
+      "details": "Application submitted by Test Student for Frontend Developer Intern at TechNova Solutions",
+      "email": "test.student@univ.edu",
+      "role": "student",
+      "userId": "std-1790255088626",
+      "ip": "127.0.0.1",
+      "timestamp": "2026-09-24T13:05:03.272Z",
+      "status": "success"
+    },
+    {
+      "id": "log_1790255088626_axtke",
+      "action": "USER_REGISTERED",
+      "details": "New student account registered: Test Student (test.student@univ.edu)",
+      "email": "test.student@univ.edu",
+      "role": "student",
+      "userId": "std-1790255088626",
+      "ip": "127.0.0.1",
+      "timestamp": "2026-09-24T13:04:48.626Z",
+      "status": "success"
+    },
+    {
+      "id": "log_1790255082194_ms04h",
+      "action": "LOGIN_FAILED",
+      "details": "Failed student login: rahim.cse@aust.edu not found",
+      "email": "rahim.cse@aust.edu",
+      "role": "student",
+      "userId": "",
+      "ip": "127.0.0.1",
+      "timestamp": "2026-09-24T13:04:42.194Z",
+      "status": "warning"
+    },
+    {
+      "id": "log-init-1",
+      "action": "SYSTEM_INITIALIZED",
+      "userId": "system",
+      "email": "system@university.edu.bd",
+      "role": "system",
+      "details": "Placement Portal security subsystem and session authority initialized.",
+      "ip": "127.0.0.1",
+      "timestamp": "2026-09-24T13:04:39.637Z",
+      "status": "success"
+    }
+  ]
+}
