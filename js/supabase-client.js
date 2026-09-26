@@ -5,21 +5,34 @@
  */
 
 (function (window) {
-  // Configuration: read from environment meta tags or window global
   const SUPABASE_URL = window.ENV_SUPABASE_URL || '';
   const SUPABASE_ANON_KEY = window.ENV_SUPABASE_ANON_KEY || '';
 
   class CloudClient {
     constructor() {
-      this.isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.includes('your-project'));
+      this.isSupabaseConfigured = Boolean(
+        SUPABASE_URL &&
+        SUPABASE_ANON_KEY &&
+        !SUPABASE_URL.includes('your-project')
+      );
+
       this.supabase = null;
 
       if (this.isSupabaseConfigured && window.supabase) {
         try {
-          this.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-          console.info('⚡ Connected to Supabase Cloud Instance:', SUPABASE_URL);
+          this.supabase = window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_ANON_KEY
+          );
+          console.info(
+            '⚡ Connected to Supabase Cloud Instance:',
+            SUPABASE_URL
+          );
         } catch (e) {
-          console.warn('Could not initialize direct Supabase SDK, falling back to REST API.', e);
+          console.warn(
+            'Could not initialize direct Supabase SDK, falling back to REST API.',
+            e
+          );
         }
       }
 
@@ -36,8 +49,18 @@
 
       this.storage = {
         from: (bucket) => ({
-          upload: (filePath, file) => this.uploadFile(bucket, filePath, file),
-          getPublicUrl: (filePath) => ({ data: { publicUrl: filePath.startsWith('/') || filePath.startsWith('http') ? filePath : `/uploads/${filePath}` } })
+          upload: (filePath, file) =>
+            this.uploadFile(bucket, filePath, file),
+
+          getPublicUrl: (filePath) => ({
+            data: {
+              publicUrl:
+                filePath.startsWith('/') ||
+                filePath.startsWith('http')
+                  ? filePath
+                  : `/uploads/${filePath}`
+            }
+          })
         })
       };
     }
@@ -53,36 +76,140 @@
         });
       }
 
-      // REST API fallback
       const role = options.data?.role || 'student';
       const name = options.data?.name || email.split('@')[0];
+
       const res = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role, name, ...options.data })
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          role,
+          name,
+          ...options.data
+        })
       });
+
       const data = await res.json();
+
       if (!res.ok) {
-        return { data: null, error: { message: data.error || 'Failed to create account.' } };
+        return {
+          data: null,
+          error: {
+            message: data.error || 'Failed to create account.'
+          }
+        };
       }
-      return { data: { user: data.user, session: { access_token: data.token } }, error: null };
+
+      return {
+        data: {
+          user: data.user,
+          session: {
+            access_token: data.token
+          }
+        },
+        error: null
+      };
     }
 
-    async signInWithPassword({ email, password, role }) {
-      if (this.supabase) {
-        return await this.supabase.auth.signInWithPassword({ email, password });
-      }
+async signInWithPassword({ email, password, role }) {
+  if (this.supabase) {
+    const result = await this.supabase.auth.signInWithPassword({
+      email,
+      password
+    });
 
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        return { data: null, error: { message: data.error || 'Invalid credentials.' } };
+    if (!result.error && result.data?.session && result.data?.user) {
+      const authData = {
+        isLoggedIn: true,
+        userType: role || result.data.user.user_metadata?.role || null,
+        token: result.data.session.access_token,
+        refreshToken: result.data.session.refresh_token || null,
+        userId: result.data.user.id,
+        userEmail: result.data.user.email || email,
+        user: result.data.user
+      };
+
+      localStorage.setItem(
+        'imp_auth',
+        JSON.stringify(authData)
+      );
+
+      localStorage.setItem(
+        'imp_token',
+        result.data.session.access_token
+      );
+    }
+
+    return result;
+  }
+
+  const res = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      email,
+      password,
+      role
+    })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    return {
+      data: null,
+      error: {
+        message: data.error || 'Invalid credentials.'
       }
-      return { data: { user: data.user, role: data.role, session: { access_token: data.token } }, error: null };
+    };
+  }
+
+  // Save authenticated session locally
+  const authData = {
+    isLoggedIn: true,
+    userType: data.role || role || null,
+    token: data.token,
+    refreshToken: data.refreshToken || null,
+    userId: data.user?.id || null,
+    userEmail: data.user?.email || email,
+    user: data.user || null
+  };
+
+  localStorage.setItem(
+    'imp_auth',
+    JSON.stringify(authData)
+  );
+
+  localStorage.setItem(
+    'imp_token',
+    data.token
+  );
+
+  return {
+    data: {
+      user: data.user,
+      role: data.role,
+      session: {
+        access_token: data.token,
+        refresh_token: data.refreshToken || null
+      }
+    },
+    error: null
+  };
+}
+    // Compatibility wrapper for pages that call DB.login()
+    async login(email, password, role) {
+      return await this.signInWithPassword({
+        email,
+        password,
+        role
+      });
     }
 
     async signInWithOAuth({ provider, options = {} }) {
@@ -90,125 +217,258 @@
         return await this.supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: options.redirectTo || window.location.origin
+            redirectTo:
+              options.redirectTo || window.location.origin
           }
         });
       }
 
-      // Simulated or Client-side Google Token handling
-      return { error: { message: 'Use DB.loginWithGoogle(profile, role) for real Google authentication.' } };
+      return {
+        error: {
+          message:
+            'Use DB.loginWithGoogle(profile, role) for real Google authentication.'
+        }
+      };
     }
 
     async resetPasswordForEmail(email) {
       if (this.supabase) {
         return await this.supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/pages/reset-password.html`
+          redirectTo:
+            `${window.location.origin}/pages/reset-password.html`
         });
       }
 
       const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ email })
       });
+
       const data = await res.json();
+
       if (!res.ok) {
-        return { data: null, error: { message: data.error || 'Could not send reset email.' } };
+        return {
+          data: null,
+          error: {
+            message:
+              data.error || 'Could not send reset email.'
+          }
+        };
       }
-      return { data, error: null };
+
+      return {
+        data,
+        error: null
+      };
     }
 
     async updateUser({ password, currentPassword, email }) {
       if (this.supabase) {
-        return await this.supabase.auth.updateUser({ password });
+        return await this.supabase.auth.updateUser({
+          password
+        });
       }
 
       const res = await fetch('/api/auth/change-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, currentPassword, newPassword: password })
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email,
+          currentPassword,
+          newPassword: password
+        })
       });
+
       const data = await res.json();
+
       if (!res.ok) {
-        return { data: null, error: { message: data.error || 'Password update failed.' } };
+        return {
+          data: null,
+          error: {
+            message:
+              data.error || 'Password update failed.'
+          }
+        };
       }
-      return { data, error: null };
+
+      return {
+        data,
+        error: null
+      };
     }
 
     async verifyEmail(token, email) {
       const res = await fetch('/api/auth/verify-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, email })
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          token,
+          email
+        })
       });
+
       const data = await res.json();
+
       if (!res.ok) {
-        return { data: null, error: { message: data.error || 'Email verification failed.' } };
+        return {
+          data: null,
+          error: {
+            message:
+              data.error || 'Email verification failed.'
+          }
+        };
       }
-      return { data, error: null };
+
+      return {
+        data,
+        error: null
+      };
     }
 
     async getUser() {
-      const auth = JSON.parse(localStorage.getItem('imp_auth') || '{}');
-      if (!auth.isLoggedIn) return { data: { user: null }, error: null };
+      const auth = JSON.parse(
+        localStorage.getItem('imp_auth') || '{}'
+      );
+
+      if (!auth.isLoggedIn) {
+        return {
+          data: {
+            user: null
+          },
+          error: null
+        };
+      }
 
       try {
-        const res = await fetch(`/api/auth/me?email=${encodeURIComponent(auth.userEmail || '')}`, {
-          headers: auth.token ? { 'Authorization': `Bearer ${auth.token}` } : {}
-        });
+        const res = await fetch(
+          `/api/auth/me?email=${encodeURIComponent(
+            auth.userEmail || ''
+          )}`,
+          {
+            headers: auth.token
+              ? {
+                  Authorization: `Bearer ${auth.token}`
+                }
+              : {}
+          }
+        );
+
         if (res.ok) {
           const info = await res.json();
-          return { data: { user: info.user, role: info.role }, error: null };
+
+          return {
+            data: {
+              user: info.user,
+              role: info.role
+            },
+            error: null
+          };
         }
       } catch (e) {
         // Fallback to local profile
       }
-      return { data: { user: auth }, error: null };
+
+      return {
+        data: {
+          user: auth
+        },
+        error: null
+      };
     }
 
     async signOut() {
       if (this.supabase) {
         await this.supabase.auth.signOut();
       }
+
       localStorage.removeItem('imp_auth');
-      return { error: null };
+
+      return {
+        error: null
+      };
     }
 
     async uploadFile(bucket, filePath, file) {
       if (this.supabase) {
-        return await this.supabase.storage.from(bucket).upload(filePath, file, {
-          upsert: true
-        });
+        return await this.supabase.storage
+          .from(bucket)
+          .upload(filePath, file, {
+            upsert: true
+          });
       }
 
-      // Convert File to base64 Data URL and post to /api/upload
       return new Promise((resolve) => {
         const reader = new FileReader();
+
         reader.onload = async () => {
           try {
             const res = await fetch('/api/upload', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json'
+              },
               body: JSON.stringify({
                 dataUrl: reader.result,
                 filename: file.name
               })
             });
+
             const data = await res.json();
+
             if (!res.ok) {
-              resolve({ data: null, error: { message: data.error || 'Upload failed' } });
+              resolve({
+                data: null,
+                error: {
+                  message:
+                    data.error || 'Upload failed'
+                }
+              });
             } else {
-              resolve({ data: { path: data.url, fullPath: data.url }, error: null });
+              resolve({
+                data: {
+                  path: data.url,
+                  fullPath: data.url
+                },
+                error: null
+              });
             }
           } catch (err) {
-            resolve({ data: null, error: { message: err.message || 'Network error during upload.' } });
+            resolve({
+              data: null,
+              error: {
+                message:
+                  err.message ||
+                  'Network error during upload.'
+              }
+            });
           }
         };
-        reader.onerror = () => resolve({ data: null, error: { message: 'Failed to read file buffer.' } });
+
+        reader.onerror = () => {
+          resolve({
+            data: null,
+            error: {
+              message:
+                'Failed to read file buffer.'
+            }
+          });
+        };
+
         reader.readAsDataURL(file);
       });
     }
   }
 
   window.CloudClient = new CloudClient();
+
+  // Make the client available as DB
+  window.DB = window.CloudClient;
+
 })(window);

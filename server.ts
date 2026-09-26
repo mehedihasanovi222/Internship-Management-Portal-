@@ -4,7 +4,14 @@ import fs from "fs";
 import crypto from "crypto";
 import { execSync } from "child_process";
 import { createServer as createViteServer } from "vite";
+import { createClient } from "@supabase/supabase-js";
+import dotenv from "dotenv";
+dotenv.config();
 
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 const app = express();
 const PORT = 3000;
 
@@ -602,34 +609,194 @@ function logAuditEvent(
   return log;
 }
 
-function getSessionFromRequest(req: Request): ActiveSession | null {
-  const authHeader = req.headers.authorization || "";
-  const token = authHeader.replace(/^Bearer\s+/i, "").trim() || (req.headers["x-session-token"] as string) || "";
-  if (!token) return null;
 
-  if (!Array.isArray(dataStore.sessions)) dataStore.sessions = [];
-  const session = dataStore.sessions.find(s => s.token === token);
-  if (!session) return null;
+async function getSessionFromRequest(req: Request): Promise<ActiveSession | null> {
+  try {
+    const authHeader = req.headers.authorization || "";
 
-  // Check account suspension status
-  if (session.role === "student") {
-    const student = dataStore.students.find(s => s.id === session.userId);
-    if (student && student.status === "suspended") {
-      dataStore.sessions = dataStore.sessions.filter(s => s.token !== token);
-      saveDatabase();
+    const token =
+      authHeader.replace(/^Bearer\s+/i, "").trim() ||
+      (req.headers["x-session-token"] as string) ||
+      "";
+
+    if (!token) {
       return null;
     }
-  } else if (session.role === "company") {
-    const company = dataStore.companies.find(c => c.id === session.userId);
-    if (company && company.status === "suspended") {
-      dataStore.sessions = dataStore.sessions.filter(s => s.token !== token);
-      saveDatabase();
+
+    // Validate Supabase access token
+    const {
+      data: { user },
+      error: authError
+    } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      console.warn("[AUTH] Invalid Supabase session:", authError?.message);
       return null;
     }
+
+    // Get common profile
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError || !profile) {
+      console.warn("[AUTH] Profile not found:", profileError?.message);
+      return null;
+    }
+
+    // ---------------------------------------------------------
+    // STUDENT
+    // ---------------------------------------------------------
+    if (profile.role === "student") {
+      const { data: student, error: studentError } = await supabase
+        .from("students")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (studentError || !student) {
+        return null;
+      }
+
+      if (student.status === "suspended") {
+        logAuditEvent(
+          "SUSPENDED_ACCOUNT_ACCESS",
+          `Suspended student attempted to access the system: ${user.email || profile.email}`,
+          req,
+          {
+            email: user.email || profile.email,
+            role: "student",
+            userId: user.id,
+            status: "warning"
+          }
+        );
+
+        return null;
+      }
+
+      const session: ActiveSession = {
+        token,
+        userId: user.id,
+        role: "student",
+        email: user.email || profile.email,
+        name:
+          profile.name ||
+          student.name ||
+          user.user_metadata?.name ||
+          "",
+        avatar:
+          profile.avatar_url ||
+          student.avatar_url ||
+          "",
+        createdAt: user.created_at || new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        ip:
+          (req.headers["x-forwarded-for"] as string) ||
+          req.socket.remoteAddress ||
+          undefined,
+        userAgent: req.headers["user-agent"] || undefined
+      };
+
+      return session;
+    }
+
+    // ---------------------------------------------------------
+    // COMPANY
+    // ---------------------------------------------------------
+    if (profile.role === "company") {
+      const { data: company, error: companyError } = await supabase
+        .from("companies")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (companyError || !company) {
+        return null;
+      }
+
+      if (company.status === "suspended") {
+        logAuditEvent(
+          "SUSPENDED_ACCOUNT_ACCESS",
+          `Suspended company attempted to access the system: ${user.email || profile.email}`,
+          req,
+          {
+            email: user.email || profile.email,
+            role: "company",
+            userId: user.id,
+            status: "warning"
+          }
+        );
+
+        return null;
+      }
+
+      const session: ActiveSession = {
+        token,
+        userId: user.id,
+        role: "company",
+        email: user.email || profile.email,
+        name:
+          profile.name ||
+          company.name ||
+          user.user_metadata?.name ||
+          "",
+        avatar:
+          profile.avatar_url ||
+          company.logo_url ||
+          "",
+        createdAt: user.created_at || new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        ip:
+          (req.headers["x-forwarded-for"] as string) ||
+          req.socket.remoteAddress ||
+          undefined,
+        userAgent: req.headers["user-agent"] || undefined
+      };
+
+      return session;
+    }
+
+    // ---------------------------------------------------------
+    // ADMIN
+    // ---------------------------------------------------------
+    if (profile.role === "admin") {
+      const session: ActiveSession = {
+        token,
+        userId: user.id,
+        role: "admin",
+        email: user.email || profile.email,
+        name:
+          profile.name ||
+          user.user_metadata?.name ||
+          "Administrator",
+        avatar:
+          profile.avatar_url ||
+          "",
+        createdAt: user.created_at || new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        ip:
+          (req.headers["x-forwarded-for"] as string) ||
+          req.socket.remoteAddress ||
+          undefined,
+        userAgent: req.headers["user-agent"] || undefined
+      };
+
+      return session;
+    }
+
+    // Invalid role
+    console.warn(
+      `[AUTH] Invalid role "${profile.role}" for user ${user.email || profile.email}`
+    );
+
+    return null;
+
+  } catch (error) {
+    console.error("[AUTH] getSessionFromRequest error:", error);
+    return null;
   }
-
-  session.lastActiveAt = new Date().toISOString();
-  return session;
 }
 
 // RBAC Middleware
@@ -1475,21 +1642,26 @@ app.post("/api/upload/resume", (req: Request, res: Response) => {
 // -------------------------------------------------------------
 
 // Session Check Endpoint (Strict Bearer Token Validation & Session Isolation)
-app.get("/api/auth/me", (req: Request, res: Response) => {
-  const session = getSessionFromRequest(req);
+app.get("/api/auth/me", async (req: Request, res: Response) => {
+  const session = await getSessionFromRequest(req);
+
   if (!session) {
-    return res.status(401).json({ authenticated: false, error: "No active or valid session." });
+    return res.status(401).json({
+      authenticated: false,
+      error: "No active or valid session."
+    });
   }
 
-  // Admin Check
+  // ADMIN
   if (session.role === "admin") {
     return res.json({
       authenticated: true,
       role: "admin",
       user: {
-        id: "admin-01",
-        name: "Dr. Placement Director",
-        email: "admin@university.edu.bd",
+        id: session.userId,
+        name: session.name,
+        email: session.email,
+        avatar: session.avatar,
         role: "admin",
         title: "University Head of Placement & Corporate Relations"
       },
@@ -1501,19 +1673,38 @@ app.get("/api/auth/me", (req: Request, res: Response) => {
     });
   }
 
-  // Student Check
+  // STUDENT
   if (session.role === "student") {
-    const student = dataStore.students.find(s => s.id === session.userId || s.email.toLowerCase() === session.email.toLowerCase());
-    if (!student) {
-      return res.status(401).json({ authenticated: false, error: "Student account not found." });
+    const { data: student, error } = await supabase
+      .from("students")
+      .select("*")
+      .eq("id", session.userId)
+      .single();
+
+    if (error || !student) {
+      return res.status(401).json({
+        authenticated: false,
+        error: "Student account not found."
+      });
     }
+
     if (student.status === "suspended") {
-      return res.status(403).json({ authenticated: false, error: "Student account suspended." });
+      return res.status(403).json({
+        authenticated: false,
+        error: "Student account suspended."
+      });
     }
+
     return res.json({
       authenticated: true,
       role: "student",
-      user: student,
+      user: {
+        ...student,
+        id: session.userId,
+        email: session.email,
+        name: session.name,
+        avatar: session.avatar
+      },
       session: {
         token: session.token,
         createdAt: session.createdAt,
@@ -1522,19 +1713,38 @@ app.get("/api/auth/me", (req: Request, res: Response) => {
     });
   }
 
-  // Company Check
+  // COMPANY
   if (session.role === "company") {
-    const comp = dataStore.companies.find(c => c.id === session.userId || c.email.toLowerCase() === session.email.toLowerCase());
-    if (!comp) {
-      return res.status(401).json({ authenticated: false, error: "Company account not found." });
+    const { data: company, error } = await supabase
+      .from("companies")
+      .select("*")
+      .eq("id", session.userId)
+      .single();
+
+    if (error || !company) {
+      return res.status(401).json({
+        authenticated: false,
+        error: "Company account not found."
+      });
     }
-    if (comp.status === "suspended") {
-      return res.status(403).json({ authenticated: false, error: "Company account suspended." });
+
+    if (company.status === "suspended") {
+      return res.status(403).json({
+        authenticated: false,
+        error: "Company account suspended."
+      });
     }
+
     return res.json({
       authenticated: true,
       role: "company",
-      user: comp,
+      user: {
+        ...company,
+        id: session.userId,
+        email: session.email,
+        name: session.name,
+        avatar: session.avatar
+      },
       session: {
         token: session.token,
         createdAt: session.createdAt,
@@ -1543,11 +1753,13 @@ app.get("/api/auth/me", (req: Request, res: Response) => {
     });
   }
 
-  return res.status(401).json({ authenticated: false, error: "Session invalid or user not found." });
+  return res.status(401).json({
+    authenticated: false,
+    error: "Session invalid or user not found."
+  });
 });
-
 // Real User Registration Endpoint (Student & Company)
-app.post("/api/auth/register", (req: Request, res: Response) => {
+app.post("/api/auth/register", async (req: Request, res: Response) => {
   const { role, email, password, name } = req.body;
 
   if (!email || !name) {
@@ -1563,7 +1775,266 @@ app.post("/api/auth/register", (req: Request, res: Response) => {
   if (!password || password.length < 6) {
     return res.status(400).json({ error: "Password must be at least 6 characters long." });
   }
+    // Create user in Supabase Authentication
+    // ============================================================
+  // SUPABASE AUTH REGISTRATION
+  // ============================================================
 
+  const { data: authData, error: authError } =
+    await supabase.auth.admin.createUser({
+      email: normalizedEmail,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        name: name.trim(),
+        role: role === "company" ? "company" : "student",
+        phone: req.body.phone?.trim() || null
+      }
+    });
+
+  if (authError || !authData.user) {
+    return res.status(400).json({
+      error: authError?.message || "Unable to create Supabase account."
+    });
+  }
+
+  const supabaseUserId = authData.user.id;
+
+  // ============================================================
+  // CREATE PROFILE
+  // ============================================================
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .insert({
+      id: supabaseUserId,
+      email: normalizedEmail,
+      role: role === "company" ? "company" : "student",
+      name: name.trim(),
+      avatar_url: req.body.avatar || req.body.logo || null,
+      phone: req.body.phone?.trim() || null,
+      location: req.body.location?.trim() || "Dhaka, Bangladesh",
+      email_verified: true
+    });
+
+  if (profileError) {
+    // Remove Auth user if profile creation fails
+    await supabase.auth.admin.deleteUser(supabaseUserId);
+
+    return res.status(400).json({
+      error: `Profile creation failed: ${profileError.message}`
+    });
+  }
+
+  // ============================================================
+  // CREATE ROLE-SPECIFIC RECORD
+  // ============================================================
+
+  if (role === "company") {
+
+    const { error: companyError } = await supabase
+      .from("companies")
+      .insert({
+        id: supabaseUserId,
+        name: name.trim(),
+        tagline:
+          req.body.tagline ||
+          "Pioneering Software Solutions",
+        industry:
+          req.body.industry ||
+          "Software & Technology",
+        company_size:
+          req.body.companySize ||
+          "50 - 200 Employees",
+        website:
+          req.body.website?.trim() ||
+          null,
+        phone:
+          req.body.phone?.trim() ||
+          null,
+        location:
+          req.body.location?.trim() ||
+          "Dhaka, Bangladesh",
+        logo_url:
+          req.body.logo ||
+          null,
+        hr_name:
+          req.body.hrName?.trim() ||
+          name.trim(),
+        hr_email:
+          normalizedEmail,
+        hr_phone:
+          req.body.phone?.trim() ||
+          null,
+        verified: false,
+        status: "pending",
+        description:
+          req.body.description?.trim() ||
+          "Innovative technology firm building scalable products."
+      });
+
+    if (companyError) {
+      await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", supabaseUserId);
+
+      await supabase.auth.admin.deleteUser(supabaseUserId);
+
+      return res.status(400).json({
+        error: `Company profile creation failed: ${companyError.message}`
+      });
+    }
+
+  } else {
+
+    const skills = Array.isArray(req.body.skills)
+      ? req.body.skills
+      : [];
+
+    const { error: studentError } = await supabase
+      .from("students")
+      .insert({
+        id: supabaseUserId,
+
+        student_id:
+          req.body.studentId?.trim() ||
+          "STD-" + Math.floor(100000 + Math.random() * 900000),
+
+        university:
+          req.body.university?.trim() ||
+          "University Department of Computer Science & Engineering",
+
+        department:
+          req.body.department?.trim() ||
+          "Computer Science & Engineering",
+
+        semester:
+          req.body.semester?.trim() ||
+          "7th Semester",
+
+        cgpa:
+          Number(req.body.cgpa) || 0,
+
+        graduation_year:
+          req.body.graduationYear?.trim() ||
+          "2027",
+
+        bio:
+          req.body.bio?.trim() ||
+          "Passionate Computer Science student looking for internship opportunities.",
+
+        skills,
+
+        languages:
+          Array.isArray(req.body.languages)
+            ? req.body.languages
+            : ["English", "Bangla"],
+
+        github_url:
+          req.body.github?.trim() ||
+          req.body.socials?.github ||
+          null,
+
+        linkedin_url:
+          req.body.linkedin?.trim() ||
+          req.body.socials?.linkedin ||
+          null,
+
+        portfolio_url:
+          req.body.portfolio?.trim() ||
+          req.body.socials?.portfolio ||
+          null,
+
+        resume_url:
+          req.body.resume?.url ||
+          null,
+
+        resume_name:
+          req.body.resume?.fileName ||
+          null,
+
+        status: "active"
+      });
+
+    if (studentError) {
+      await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", supabaseUserId);
+
+      await supabase.auth.admin.deleteUser(supabaseUserId);
+
+      return res.status(400).json({
+        error: `Student profile creation failed: ${studentError.message}`
+      });
+    }
+  }
+
+  // ============================================================
+  // CREATE REAL SUPABASE SESSION
+  // ============================================================
+
+  const publicSupabase = createClient(
+    process.env.VITE_SUPABASE_URL!,
+    process.env.VITE_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      }
+    }
+  );
+
+  const { data: sessionData, error: sessionError } =
+    await publicSupabase.auth.signInWithPassword({
+      email: normalizedEmail,
+      password
+    });
+
+  if (sessionError || !sessionData.session) {
+    return res.status(201).json({
+      success: true,
+      role: role === "company" ? "company" : "student",
+      user: {
+        id: supabaseUserId,
+        name: name.trim(),
+        email: normalizedEmail,
+        phone: req.body.phone || ""
+      },
+      message:
+        "Account created successfully. Please sign in.",
+      requiresLogin: true
+    });
+  }
+
+  // ============================================================
+  // RETURN USER + REAL SUPABASE ACCESS TOKEN
+  // ============================================================
+
+  const userForFrontend = {
+    id: supabaseUserId,
+    name: name.trim(),
+    email: normalizedEmail,
+    phone: req.body.phone || "",
+    avatar:
+      req.body.avatar ||
+      req.body.logo ||
+      "",
+    logo:
+      req.body.logo ||
+      "",
+    role: role === "company" ? "company" : "student"
+  };
+
+  return res.status(201).json({
+    success: true,
+    role: role === "company" ? "company" : "student",
+    user: userForFrontend,
+    token: sessionData.session.access_token,
+    refreshToken: sessionData.session.refresh_token,
+    message: "Account created successfully!"
+  });
   // Check if email already registered
   const existingStudent = dataStore.students.find(s => s.email.toLowerCase() === normalizedEmail);
   const existingCompany = dataStore.companies.find(c => c.email.toLowerCase() === normalizedEmail || c.hrEmail?.toLowerCase() === normalizedEmail);
@@ -2127,298 +2598,252 @@ app.post("/api/auth/google", (req: Request, res: Response) => {
 });
 
 // Unified Real Authentication Endpoint (Strict Credential Check & Session Generation)
-app.post("/api/auth/login", (req: Request, res: Response) => {
+app.post("/api/auth/login", async (req: Request, res: Response) => {
   const { email, password, role } = req.body;
 
   if (!email || !password) {
-    return res.status(400).json({ error: "Both email address and password are required." });
-  }
-
-  const normalizedEmail = (email || "").trim().toLowerCase();
-  const rawPassword = (password || "").trim();
-
-  // 1. Admin Authentication
-  if (role === "admin" || normalizedEmail === "admin@university.edu.bd") {
-    if (normalizedEmail !== "admin@university.edu.bd") {
-      logAuditEvent("LOGIN_FAILED", `Failed admin login attempt: Unknown email ${normalizedEmail}`, req, {
-        email: normalizedEmail,
-        role: "admin",
-        status: "warning"
-      });
-      return res.status(404).json({ error: "No administrator account exists with this email address." });
-    }
-    if (rawPassword !== "admin123" && rawPassword !== "admin2026") {
-      logAuditEvent("LOGIN_FAILED", `Failed admin login attempt: Incorrect password for ${normalizedEmail}`, req, {
-        email: normalizedEmail,
-        role: "admin",
-        status: "warning"
-      });
-      return res.status(401).json({ error: "Incorrect administrator password. Please try again." });
-    }
-
-    const sessionToken = "sess_admin_" + crypto.randomBytes(24).toString("hex") + "_" + Date.now();
-    const newSession: ActiveSession = {
-      token: sessionToken,
-      userId: "admin-01",
-      role: "admin",
-      email: "admin@university.edu.bd",
-      name: "Dr. Placement Director",
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      ip: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1",
-      userAgent: req.headers["user-agent"] || "Browser"
-    };
-
-    if (!Array.isArray(dataStore.sessions)) dataStore.sessions = [];
-    dataStore.sessions.unshift(newSession);
-    logAuditEvent("LOGIN_SUCCESS", `Administrator authenticated: admin@university.edu.bd`, req, {
-      email: "admin@university.edu.bd",
-      role: "admin",
-      userId: "admin-01",
-      status: "success"
-    });
-    saveDatabase();
-
-    return res.json({
-      success: true,
-      role: "admin",
-      user: {
-        id: "admin-01",
-        name: "Dr. Placement Director",
-        email: "admin@university.edu.bd",
-        role: "admin",
-        title: "University Head of Placement & Corporate Relations"
-      },
-      token: sessionToken
+    return res.status(400).json({
+      error: "Email and password are required."
     });
   }
 
-  // 2. Company Role Specified
-  if (role === "company") {
-    const comp = dataStore.companies.find(c => 
-      c.email.toLowerCase() === normalizedEmail || 
-      c.hrEmail?.toLowerCase() === normalizedEmail
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const rawPassword = String(password);
+
+  try {
+    // Use Supabase public/anon client for password authentication
+    const authClient = createClient(
+      process.env.VITE_SUPABASE_URL!,
+      process.env.VITE_SUPABASE_ANON_KEY!
     );
-    if (!comp) {
-      logAuditEvent("LOGIN_FAILED", `Failed company login: ${normalizedEmail} not found`, req, {
-        email: normalizedEmail,
-        role: "company",
-        status: "warning"
-      });
-      return res.status(404).json({ error: "No company account found for \"" + email + "\". Please register your company first." });
-    }
-    if (comp.status === "suspended") {
-      logAuditEvent("LOGIN_BLOCKED", `Blocked login for suspended company ${normalizedEmail}`, req, {
-        email: normalizedEmail,
-        role: "company",
-        status: "error"
-      });
-      return res.status(403).json({ error: "This corporate account has been suspended by the Placement Cell." });
-    }
-    if (comp.password && comp.password !== rawPassword && rawPassword !== "company123") {
-      logAuditEvent("LOGIN_FAILED", `Failed company login: Incorrect password for ${normalizedEmail}`, req, {
-        email: normalizedEmail,
-        role: "company",
-        status: "warning"
-      });
-      return res.status(401).json({ error: "Incorrect password for company portal. Please check your credentials." });
-    }
 
-    const sessionToken = "sess_comp_" + crypto.randomBytes(24).toString("hex") + "_" + Date.now();
-    const newSession: ActiveSession = {
-      token: sessionToken,
-      userId: comp.id,
-      role: "company",
-      email: comp.email,
-      name: comp.name,
-      avatar: comp.logo,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      ip: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1",
-      userAgent: req.headers["user-agent"] || "Browser"
-    };
-
-    if (!Array.isArray(dataStore.sessions)) dataStore.sessions = [];
-    dataStore.sessions.unshift(newSession);
-    logAuditEvent("LOGIN_SUCCESS", `Company signed in: ${comp.name} (${comp.email})`, req, {
-      email: comp.email,
-      role: "company",
-      userId: comp.id,
-      status: "success"
+    // Authenticate with Supabase Auth
+    const {
+      data: authData,
+      error: authError
+    } = await authClient.auth.signInWithPassword({
+      email: normalizedEmail,
+      password: rawPassword
     });
-    saveDatabase();
 
-    return res.json({
-      success: true,
-      role: "company",
-      user: comp,
-      token: sessionToken
-    });
-  }
+    if (authError || !authData.user || !authData.session) {
+      console.error("[AUTH] Login failed:", authError?.message);
 
-  // 3. Student Role Specified
-  if (role === "student") {
-    const student = dataStore.students.find(s => 
-      s.email.toLowerCase() === normalizedEmail || 
-      s.studentId?.toLowerCase() === normalizedEmail
+      logAuditEvent(
+        "LOGIN_FAILED",
+        `Failed login attempt: ${normalizedEmail}`,
+        req,
+        {
+          email: normalizedEmail,
+          role: role || "unknown"
+        }
+      );
+
+      return res.status(401).json({
+        error: authError?.message || "Invalid email or password."
+      });
+    }
+
+    const authUser = authData.user;
+
+    // Get application profile
+    const {
+      data: profile,
+      error: profileError
+    } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", authUser.id)
+      .single();
+
+    if (profileError || !profile) {
+      console.error("[AUTH] Profile not found:", profileError?.message);
+
+      return res.status(404).json({
+        error: "User profile not found."
+      });
+    }
+
+    // Strict role validation
+    if (role && profile.role !== role) {
+      logAuditEvent(
+        "LOGIN_ROLE_MISMATCH",
+        `Role mismatch for ${normalizedEmail}`,
+        req,
+        {
+          email: normalizedEmail,
+          requestedRole: role,
+          actualRole: profile.role
+        }
+      );
+
+      return res.status(403).json({
+        error: `This account is registered as ${profile.role}, not ${role}.`
+      });
+    }
+
+    let user: any;
+
+    // =========================
+    // STUDENT
+    // =========================
+    if (profile.role === "student") {
+      const {
+        data: student,
+        error: studentError
+      } = await supabase
+        .from("students")
+        .select("*")
+        .eq("id", authUser.id)
+        .single();
+
+      if (studentError || !student) {
+        return res.status(404).json({
+          error: "Student profile not found."
+        });
+      }
+
+      if (student.status === "suspended") {
+        logAuditEvent(
+          "SUSPENDED_ACCOUNT_LOGIN",
+          `Suspended student login blocked: ${normalizedEmail}`,
+          req,
+          {
+            userId: authUser.id,
+            role: "student"
+          }
+        );
+
+        return res.status(403).json({
+          error: "Your student account has been suspended."
+        });
+      }
+
+      user = {
+        id: authUser.id,
+        name: profile.name || student.name || "",
+        email: authUser.email || profile.email,
+        phone: profile.phone || "",
+        avatar: profile.avatar_url || "",
+        role: "student",
+        studentId: student.student_id || "",
+        university: student.university || "",
+        department: student.department || "",
+        semester: student.semester || "",
+        cgpa: student.cgpa || "",
+        graduationYear: student.graduation_year || "",
+        bio: student.bio || "",
+        skills: student.skills || [],
+        resumeUrl: student.resume_url || "",
+        resumeName: student.resume_name || ""
+      };
+    }
+
+    // =========================
+    // COMPANY
+    // =========================
+    else if (profile.role === "company") {
+      const {
+        data: company,
+        error: companyError
+      } = await supabase
+        .from("companies")
+        .select("*")
+        .eq("id", authUser.id)
+        .single();
+
+      if (companyError || !company) {
+        return res.status(404).json({
+          error: "Company profile not found."
+        });
+      }
+
+      if (company.status === "suspended") {
+        logAuditEvent(
+          "SUSPENDED_ACCOUNT_LOGIN",
+          `Suspended company login blocked: ${normalizedEmail}`,
+          req,
+          {
+            userId: authUser.id,
+            role: "company"
+          }
+        );
+
+        return res.status(403).json({
+          error: "Your company account has been suspended."
+        });
+      }
+
+      user = {
+        id: authUser.id,
+        name: profile.name || company.name || "",
+        email: authUser.email || profile.email,
+        phone: profile.phone || company.phone || "",
+        avatar: profile.avatar_url || company.logo_url || "",
+        role: "company",
+        companyName: company.name || "",
+        tagline: company.tagline || "",
+        industry: company.industry || "",
+        companySize: company.company_size || "",
+        website: company.website || "",
+        location: company.location || "",
+        logoUrl: company.logo_url || "",
+        verified: company.verified || false,
+        status: company.status || "pending"
+      };
+    }
+
+    // =========================
+    // ADMINISTRATOR
+    // =========================
+    else if (profile.role === "admin") {
+      user = {
+        id: authUser.id,
+        name: profile.name || "Administrator",
+        email: authUser.email || profile.email,
+        phone: profile.phone || "",
+        avatar: profile.avatar_url || "",
+        role: "admin"
+      };
+    }
+
+    // =========================
+    // UNKNOWN ROLE
+    // =========================
+    else {
+      return res.status(403).json({
+        error: "Invalid account role."
+      });
+    }
+
+    // Successful login audit
+    logAuditEvent(
+      "LOGIN_SUCCESS",
+      `Successful ${profile.role} login: ${normalizedEmail}`,
+      req,
+      {
+        userId: authUser.id,
+        role: profile.role,
+        email: normalizedEmail
+      }
     );
-    if (!student) {
-      logAuditEvent("LOGIN_FAILED", `Failed student login: ${normalizedEmail} not found`, req, {
-        email: normalizedEmail,
-        role: "student",
-        status: "warning"
-      });
-      return res.status(404).json({ 
-        error: "No student account found for \"" + email + "\". You must create an account first!" 
-      });
-    }
-    if (student.status === "suspended") {
-      logAuditEvent("LOGIN_BLOCKED", `Blocked login for suspended student ${normalizedEmail}`, req, {
-        email: normalizedEmail,
-        role: "student",
-        status: "error"
-      });
-      return res.status(403).json({ error: "This student account has been suspended by the Placement Cell." });
-    }
-    if (student.password && student.password !== rawPassword && rawPassword !== "password123") {
-      logAuditEvent("LOGIN_FAILED", `Failed student login: Incorrect password for ${normalizedEmail}`, req, {
-        email: normalizedEmail,
-        role: "student",
-        status: "warning"
-      });
-      return res.status(401).json({ error: "Incorrect password! Please check your credentials." });
-    }
-
-    const sessionToken = "sess_std_" + crypto.randomBytes(24).toString("hex") + "_" + Date.now();
-    const newSession: ActiveSession = {
-      token: sessionToken,
-      userId: student.id,
-      role: "student",
-      email: student.email,
-      name: student.name,
-      avatar: student.avatar,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      ip: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1",
-      userAgent: req.headers["user-agent"] || "Browser"
-    };
-
-    if (!Array.isArray(dataStore.sessions)) dataStore.sessions = [];
-    dataStore.sessions.unshift(newSession);
-    logAuditEvent("LOGIN_SUCCESS", `Student signed in: ${student.name} (${student.email})`, req, {
-      email: student.email,
-      role: "student",
-      userId: student.id,
-      status: "success"
-    });
-    saveDatabase();
 
     return res.json({
       success: true,
-      role: "student",
-      user: student,
-      token: sessionToken
+      role: profile.role,
+      user,
+      token: authData.session.access_token,
+      refreshToken: authData.session.refresh_token
+    });
+
+  } catch (error) {
+    console.error("[AUTH] Login error:", error);
+
+    return res.status(500).json({
+      error: "Login failed. Please try again."
     });
   }
-
-  // 4. Role Unspecified (Automatic lookup in registered accounts)
-  const student = dataStore.students.find(s => 
-    s.email.toLowerCase() === normalizedEmail || 
-    s.studentId?.toLowerCase() === normalizedEmail
-  );
-  if (student) {
-    if (student.status === "suspended") {
-      return res.status(403).json({ error: "This student account is suspended." });
-    }
-    if (student.password && student.password !== rawPassword && rawPassword !== "password123") {
-      return res.status(401).json({ error: "Incorrect password! Please check your credentials." });
-    }
-
-    const sessionToken = "sess_std_" + crypto.randomBytes(24).toString("hex") + "_" + Date.now();
-    const newSession: ActiveSession = {
-      token: sessionToken,
-      userId: student.id,
-      role: "student",
-      email: student.email,
-      name: student.name,
-      avatar: student.avatar,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      ip: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1",
-      userAgent: req.headers["user-agent"] || "Browser"
-    };
-
-    if (!Array.isArray(dataStore.sessions)) dataStore.sessions = [];
-    dataStore.sessions.unshift(newSession);
-    logAuditEvent("LOGIN_SUCCESS", `Student signed in: ${student.name} (${student.email})`, req, {
-      email: student.email,
-      role: "student",
-      userId: student.id,
-      status: "success"
-    });
-    saveDatabase();
-
-    return res.json({
-      success: true,
-      role: "student",
-      user: student,
-      token: sessionToken
-    });
-  }
-
-  const comp = dataStore.companies.find(c => 
-    c.email.toLowerCase() === normalizedEmail || 
-    c.hrEmail?.toLowerCase() === normalizedEmail
-  );
-  if (comp) {
-    if (comp.status === "suspended") {
-      return res.status(403).json({ error: "This company account is suspended." });
-    }
-    if (comp.password && comp.password !== rawPassword && rawPassword !== "company123") {
-      return res.status(401).json({ error: "Incorrect password for company portal." });
-    }
-
-    const sessionToken = "sess_comp_" + crypto.randomBytes(24).toString("hex") + "_" + Date.now();
-    const newSession: ActiveSession = {
-      token: sessionToken,
-      userId: comp.id,
-      role: "company",
-      email: comp.email,
-      name: comp.name,
-      avatar: comp.logo,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      ip: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1",
-      userAgent: req.headers["user-agent"] || "Browser"
-    };
-
-    if (!Array.isArray(dataStore.sessions)) dataStore.sessions = [];
-    dataStore.sessions.unshift(newSession);
-    logAuditEvent("LOGIN_SUCCESS", `Company signed in: ${comp.name} (${comp.email})`, req, {
-      email: comp.email,
-      role: "company",
-      userId: comp.id,
-      status: "success"
-    });
-    saveDatabase();
-
-    return res.json({
-      success: true,
-      role: "company",
-      user: comp,
-      token: sessionToken
-    });
-  }
-
-  logAuditEvent("LOGIN_FAILED", `Login attempt failed: ${normalizedEmail} not found`, req, {
-    email: normalizedEmail,
-    status: "warning"
-  });
-  return res.status(404).json({
-    error: "No account registered with \"" + email + "\". Please create your account first to log in!"
-  });
 });
-
 // Explicit Logout Endpoint (Revokes server-side session)
 app.post("/api/auth/logout", (req: Request, res: Response) => {
   const authHeader = req.headers.authorization || "";
