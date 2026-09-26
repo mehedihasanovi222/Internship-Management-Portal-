@@ -172,12 +172,12 @@ function openBroadcastModal() {
 
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">Notice Headline</label>
-            <input type="text" id="broadcast-title" required placeholder="e.g. Fall 2026 Campus Placement Fair Announced" class="w-full px-3 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:border-amber-500" />
+            <input type="text" id="broadcast-title" required placeholder="Enter the headline for your broadcast" class="w-full px-3 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:border-amber-500" />
           </div>
 
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">Detailed Message</label>
-            <textarea id="broadcast-message" required rows="3" placeholder="Enter instructions, deadlines, or venue details..." class="w-full px-3 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:border-amber-500"></textarea>
+            <textarea id="broadcast-message" required rows="3" placeholder="Enter the detailed message for your broadcast" class="w-full px-3 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:border-amber-500"></textarea>
           </div>
 
           <div class="flex items-center justify-end gap-3 pt-2">

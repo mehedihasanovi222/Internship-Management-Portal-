@@ -93,7 +93,7 @@ function setupApplyModal() {
               <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
                 <i class="fa-solid fa-link text-xs"></i>
               </span>
-              <input type="url" id="apply-portfolio" value="https://mehedihasan.dev" placeholder="https://yourportfolio.dev" class="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <input type="url" id="apply-portfolio" value="https://Name.dev" placeholder="https://yourportfolio.dev" class="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             </div>
           </div>
 
