@@ -713,9 +713,15 @@ function updateNotificationBadges() {
 // Bind Theme Toggle Buttons across pages
 function setupThemeToggleButtons() {
   const themeBtns = document.querySelectorAll('.theme-toggle-btn');
+
   themeBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      toggleTheme();
+      const root = document.documentElement;
+      const isDark = root.classList.toggle('dark');
+
+      localStorage.setItem('imp_theme', isDark ? 'dark' : 'light');
+
+      window.dispatchEvent(new Event('themeChanged'));
     });
   });
 }
