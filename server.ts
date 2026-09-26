@@ -2654,13 +2654,24 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    // Production mode: serve pre-built Vite bundle in /dist
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req: Request, res: Response) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-  }
+  // Production mode: serve the Vite build and the project's static assets
+  const distPath = path.join(process.cwd(), "dist");
+
+  // Serve static project assets used by the HTML pages
+  app.use("/js", express.static(path.join(process.cwd(), "js")));
+  app.use("/css", express.static(path.join(process.cwd(), "css")));
+  app.use("/pages", express.static(path.join(process.cwd(), "pages")));
+  app.use("/data", express.static(path.join(process.cwd(), "data")));
+  app.use("/public", express.static(path.join(process.cwd(), "public")));
+
+  // Serve the Vite production build
+  app.use(express.static(distPath));
+
+  // SPA fallback
+  app.get("*", (req: Request, res: Response) => {
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+}
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`====================================================`);
