@@ -27,6 +27,30 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+// Expose Supabase configuration to the browser
+app.use((req, res, next) => {
+  if (req.path === "/" || req.path.endsWith(".html")) {
+    const originalSend = res.send.bind(res);
+
+    res.send = ((body: any) => {
+      if (typeof body === "string" && body.includes("</head>")) {
+        const supabaseConfig = `
+<script>
+  window.ENV_SUPABASE_URL = ${JSON.stringify(process.env.VITE_SUPABASE_URL || "")};
+  window.ENV_SUPABASE_ANON_KEY = ${JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY || "")};
+</script>
+`;
+
+        body = body.replace("</head>", `${supabaseConfig}</head>`);
+      }
+
+      return originalSend(body);
+    }) as typeof res.send;
+  }
+
+  next();
+});
+
 // Server-side JSON persistence directory & file
 const DATA_DIR = path.join(process.cwd(), "data");
 const DATA_FILE = path.join(DATA_DIR, "db.json");
@@ -3098,14 +3122,23 @@ async function startServer() {
   });
 }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`====================================================`);
-    console.log(`🚀 Placement Portal Full-Stack Server Running`);
-    console.log(`🌐 Host: http://0.0.0.0:${PORT}`);
-    console.log(`🏛️ Cloud Run Production Port: 3000`);
-    console.log(`📡 REST API Endpoints active at /api/*`);
-    console.log(`====================================================`);
-  });
+ // Expose Supabase configuration to browser
+app.get("/env-config.js", (req, res) => {
+  res.type("application/javascript");
+  res.send(`
+    window.ENV_SUPABASE_URL = ${JSON.stringify(process.env.VITE_SUPABASE_URL || "")};
+    window.ENV_SUPABASE_ANON_KEY = ${JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY || "")};
+  `);
+});
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`====================================================`);
+  console.log(`🚀 Placement Portal Full-Stack Server Running`);
+  console.log(`🌐 Host: http://0.0.0.0:${PORT}`);
+  console.log(`🏛️ Cloud Run Production Port: 3000`);
+  console.log(`📡 REST API Endpoints active at /api/*`);
+  console.log(`====================================================`);
+});
 }
 
 startServer();
