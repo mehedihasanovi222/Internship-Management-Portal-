@@ -3157,40 +3157,65 @@ if (role === "student") {
 
 // Admin Company Verification & Approval Endpoint
 app.patch("/api/admin/verify-company/:id", async (req: Request, res: Response) => {
-  const session = await getSessionFromRequest(req);
-  if (!session || session.role !== "admin") {
-    return res.status(403).json({ error: "Access denied. Administrator privileges required." });
+  try {
+    const session = await getSessionFromRequest(req);
+
+    if (!session || session.role !== "admin") {
+      return res.status(403).json({
+        error: "Access denied. Administrator privileges required."
+      });
+    }
+
+    const { id } = req.params;
+
+    const isApproved =
+      req.body.verified !== undefined
+        ? Boolean(req.body.verified)
+        : true;
+
+    const newStatus = isApproved ? "active" : "pending";
+
+    const { data: company, error: companyError } = await supabase
+      .from("companies")
+      .update({
+        verified: isApproved,
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", id)
+      .select("*")
+      .single();
+
+    if (companyError || !company) {
+      console.error("Company verification update failed:", companyError);
+
+      return res.status(500).json({
+        error: companyError?.message || "Failed to update company verification"
+      });
+    }
+
+    logAuditEvent(
+      "COMPANY_VERIFIED",
+      `Admin updated company ${company.name}: approved=${isApproved}`,
+      req,
+      {
+        role: "admin",
+        status: "success"
+      }
+    );
+
+    return res.json({
+      success: true,
+      company
+    });
+
+  } catch (error) {
+    console.error("Admin company verification error:", error);
+
+    return res.status(500).json({
+      error: "Failed to update company verification status"
+    });
   }
-
-  const company = dataStore.companies.find(c => c.id === req.params.id);
-  if (!company) return res.status(404).json({ error: "Company not found" });
-  
-  const isApproved = req.body.verified !== undefined ? Boolean(req.body.verified) : true;
-  company.verified = isApproved;
-  company.status = isApproved ? "active" : "pending";
-
-  logAuditEvent("COMPANY_VERIFIED", `Admin verified company ${company.name}: approved=${isApproved}`, req, {
-    role: "admin",
-    status: "success"
-  });
-
-  saveDatabase();
-
-  // Notify company
-  dataStore.notifications.unshift({
-    id: "notif-" + Date.now(),
-    target: "company",
-    userId: company.id,
-    title: isApproved ? "Company Account Verified! 🌟" : "Verification Status Update",
-    message: isApproved 
-      ? "Your company has been verified by the Central Placement Cell. You are now authorized to post internships."
-      : "Your verification request has been marked for further review by the administrator.",
-    date: new Date().toISOString().replace("T", " ").substring(0, 16),
-    read: false,
-    type: "verification"
-  });
-
-  return res.json({ success: true, company });
 });
 
 app.delete("/api/admin/internships/:id", async (req: Request, res: Response) => {
