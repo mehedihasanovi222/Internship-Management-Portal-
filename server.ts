@@ -1318,10 +1318,57 @@ app.patch("/api/applications/:id/status", (req: Request, res: Response) => {
 });
 
 // Companies API (Corporate Directory & Admin Verification)
-app.get("/api/companies", (req: Request, res: Response) => {
-  res.json(dataStore.companies);
-});
+app.get("/api/companies", async (req: Request, res: Response) => {
+  try {
+    const { data: companies, error } = await supabase
+      .from("companies")
+      .select("*")
+      .order("created_at", { ascending: false });
 
+    if (error) {
+      console.error("Failed to fetch companies from Supabase:", error);
+      return res.status(500).json({
+        error: "Failed to fetch companies"
+      });
+    }
+
+    const formattedCompanies = (companies || []).map(company => ({
+      id: company.id,
+      name: company.name || "",
+      tagline: company.tagline || "",
+      industry: company.industry || "",
+      companySize: company.company_size || "",
+      website: company.website || "",
+      phone: company.phone || "",
+      location: company.location || "",
+      logo: company.logo_url || "",
+      logoUrl: company.logo_url || "",
+      coverImage: company.cover_image_url || "",
+      hrName: company.hr_name || "",
+      hrEmail: company.hr_email || "",
+      hrPhone: company.hr_phone || "",
+      founded: company.founded || "",
+      verified: company.verified || false,
+      status: company.status || "pending",
+      description: company.description || "",
+      socials: {
+        linkedin: company.linkedin_url || "",
+        facebook: company.facebook_url || ""
+      },
+      createdAt: company.created_at,
+      updatedAt: company.updated_at
+    }));
+
+    return res.json(formattedCompanies);
+
+  } catch (error) {
+    console.error("Companies API error:", error);
+
+    return res.status(500).json({
+      error: "Failed to fetch companies"
+    });
+  }
+});
 app.get("/api/companies/:id", (req: Request, res: Response) => {
   const comp = dataStore.companies.find(c => c.id === req.params.id);
   if (!comp) {
