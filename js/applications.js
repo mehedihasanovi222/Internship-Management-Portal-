@@ -188,76 +188,181 @@ async function submitInternshipApplication(e) {
   }
 }
 
-/**
- * Initialize Student Applications Listing Page
+//**
+ * Student Applications - Supabase
  */
 let currentAppFilter = 'All';
 
 async function initStudentApplications() {
   const container = document.getElementById('student-applications-container');
+
   if (!container) return;
 
-  const student = DB.getStudentProfile();
-  // Fetch dynamic real applications from server
-  await DB.fetchApplications({ studentId: student.id });
+  // Setup filter buttons first
+  setupStudentApplicationFilters();
 
-  // Setup filter tabs
-  const tabButtons = document.querySelectorAll('.app-filter-tab');
-  tabButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      tabButtons.forEach(b => {
-        b.classList.remove('bg-indigo-600', 'text-white', 'shadow-md', 'shadow-indigo-600/20');
-        b.classList.add('bg-white', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
-      });
-      btn.classList.add('bg-indigo-600', 'text-white', 'shadow-md', 'shadow-indigo-600/20');
-      btn.classList.remove('bg-white', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
-      currentAppFilter = btn.dataset.status;
-      renderStudentApplicationsList();
-    });
-  });
+  const token = localStorage.getItem('imp_token');
 
-  // Search input
-  const searchInput = document.getElementById('search-app-input');
-  if (searchInput) {
-    searchInput.addEventListener('input', () => {
-      renderStudentApplicationsList();
-    });
+  if (!token) {
+    window.location.href = 'login.html';
+    return;
   }
 
-  renderStudentApplicationsList();
+  // Loading state
+  container.innerHTML = `
+    <div class="py-16 text-center bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-8">
+
+      <div class="w-12 h-12 mx-auto mb-4 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin"></div>
+
+      <h3 class="text-lg font-bold text-slate-800 dark:text-white">
+        Loading Applications...
+      </h3>
+
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        Please wait while we load your applications.
+      </p>
+
+    </div>
+  `;
+
+  try {
+    const response = await fetch('/api/applications?student=true', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result.error || 'Failed to load applications'
+      );
+    }
+
+    DB._applications = Array.isArray(result)
+      ? result
+      : (
+          Array.isArray(result.applications)
+            ? result.applications
+            : []
+        );
+
+    renderStudentApplicationsList();
+
+  } catch (error) {
+
+    console.error('Applications loading error:', error);
+
+    DB._applications = [];
+
+    container.innerHTML = `
+      <div class="py-16 text-center bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-8">
+
+        <div class="w-16 h-16 bg-rose-50 dark:bg-rose-950/30 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+
+        <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-2">
+          Unable to Load Applications
+        </h3>
+
+        <p class="text-slate-500 dark:text-slate-400 text-sm max-w-md mx-auto">
+          ${error.message || 'Please refresh the page and try again.'}
+        </p>
+
+      </div>
+    `;
+  }
+}
+function setupStudentApplicationFilters() {
+  const tabButtons = document.querySelectorAll('.student-app-tab');
+
+  tabButtons.forEach(btn => {
+    btn.onclick = () => {
+      tabButtons.forEach(b => {
+        b.classList.remove(
+          'bg-indigo-600',
+          'text-white',
+          'shadow-md',
+          'shadow-indigo-600/20'
+        );
+
+        b.classList.add(
+          'bg-white',
+          'dark:bg-slate-800',
+          'text-slate-600',
+          'dark:text-slate-300'
+        );
+      });
+
+      btn.classList.add(
+        'bg-indigo-600',
+        'text-white',
+        'shadow-md',
+        'shadow-indigo-600/20'
+      );
+
+      btn.classList.remove(
+        'bg-white',
+        'dark:bg-slate-800',
+        'text-slate-600',
+        'dark:text-slate-300'
+      );
+
+      currentAppFilter = btn.dataset.status || 'All';
+
+      renderStudentApplicationsList();
+    };
+  });
 }
 
 function renderStudentApplicationsList() {
   const container = document.getElementById('student-applications-container');
+
   if (!container) return;
 
-  const applications = DB.getApplications();
-  const search = (document.getElementById('search-app-input')?.value || '').toLowerCase().trim();
+  const applications = Array.isArray(DB._applications)
+    ? DB._applications
+    : [];
 
   const filtered = applications.filter(app => {
-    const matchesFilter = currentAppFilter === 'All' || app.status.toLowerCase() === currentAppFilter.toLowerCase();
-    const matchesSearch = !search || 
-      app.jobTitle.toLowerCase().includes(search) || 
-      app.company.toLowerCase().includes(search);
-    return matchesFilter && matchesSearch;
-  });
+    if (currentAppFilter === 'All') return true;
 
-  const countBadge = document.getElementById('apps-count-badge');
-  if (countBadge) countBadge.textContent = `${filtered.length} Applications`;
+    const status = String(app.status || '').toLowerCase();
+
+    if (currentAppFilter === 'Selected') {
+      return status === 'selected' || status === 'offer';
+    }
+
+    return status === currentAppFilter.toLowerCase();
+  });
 
   if (filtered.length === 0) {
     container.innerHTML = `
       <div class="py-16 text-center bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-8">
+
         <div class="w-16 h-16 bg-slate-100 dark:bg-slate-700 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
           <i class="fa-regular fa-folder-open"></i>
         </div>
-        <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-2">No Applications Found</h3>
-        <p class="text-slate-500 dark:text-slate-400 text-sm max-w-md mx-auto mb-6">No applications match the selected status '${currentAppFilter}'. Search for new internships and apply with a single click.</p>
-        <a href="internships.html" class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition">
-          <i class="fa-solid fa-magnifying-glass"></i> Explore Internships
+
+        <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-2">
+          No Applications Found
+        </h3>
+
+        <p class="text-slate-500 dark:text-slate-400 text-sm max-w-md mx-auto mb-6">
+          There are no applications in the selected category.
+        </p>
+
+        <a href="internships.html"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          Explore Internships
         </a>
+
       </div>
     `;
+
     return;
   }
 
@@ -270,183 +375,460 @@ function renderStudentApplicationsList() {
     Rejected: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-400 dark:border-rose-800'
   };
 
-  container.innerHTML = filtered.map(app => `
-    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 hover-card-lift shadow-sm mb-4">
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div class="flex items-center gap-4">
-          <img src="${app.companyLogo}" alt="${app.company}" class="w-14 h-14 rounded-xl object-cover border border-slate-100 dark:border-slate-700" />
-          <div>
-            <div class="flex items-center gap-2.5 flex-wrap">
-              <h3 class="font-bold text-lg text-slate-900 dark:text-white">
-                <a href="application-details.html?id=${app.id}" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition">${app.jobTitle}</a>
-              </h3>
-              <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full border ${statusBadges[app.status] || statusBadges.Applied}">
-                ${app.status}
-              </span>
+  container.innerHTML = filtered.map(app => {
+
+    const status = app.status || 'Applied';
+
+    return `
+      <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 hover-card-lift shadow-sm mb-4">
+
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+
+          <div class="flex items-center gap-4">
+
+            <img
+              src="${app.companyLogo || app.logo || 'https://via.placeholder.com/100'}"
+              alt="${app.company || 'Company'}"
+              class="w-14 h-14 rounded-xl object-cover border border-slate-100 dark:border-slate-700"
+            />
+
+            <div>
+
+              <div class="flex items-center gap-2.5 flex-wrap">
+
+                <h3 class="font-bold text-lg text-slate-900 dark:text-white">
+                  <a
+                    href="application-details.html?id=${app.id}"
+                    class="hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+                  >
+                    ${app.jobTitle || app.internshipTitle || 'Internship'}
+                  </a>
+                </h3>
+
+                <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full border ${statusBadges[status] || statusBadges.Applied}">
+                  ${status}
+                </span>
+
+              </div>
+
+              <p class="text-sm font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
+
+                <i class="fa-regular fa-building text-indigo-500 text-xs"></i>
+
+                ${app.company || 'Company'}
+
+                <span class="text-slate-300 dark:text-slate-600">•</span>
+
+                <span class="text-xs text-slate-500 dark:text-slate-400">
+                  Applied on: ${app.appliedDate || app.createdAt || 'N/A'}
+                </span>
+
+              </p>
+
             </div>
-            <p class="text-sm font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
-              <i class="fa-regular fa-building text-indigo-500 text-xs"></i> ${app.company}
-              <span class="text-slate-300 dark:text-slate-600">•</span>
-              <span class="text-xs text-slate-500 dark:text-slate-400">Applied on: ${app.appliedDate}</span>
-            </p>
+
           </div>
+
+          <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+
+            <a
+              href="application-details.html?id=${app.id}"
+              class="px-4 py-2 text-sm font-semibold rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-300 transition flex items-center gap-1.5"
+            >
+              <i class="fa-regular fa-eye"></i>
+              Track Application
+            </a>
+
+            <button
+              onclick="handleWithdrawApplication('${app.id}')"
+              class="px-3.5 py-2 text-sm font-medium rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 transition"
+            >
+              Withdraw
+            </button>
+
+          </div>
+
         </div>
 
-        <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-          <a href="application-details.html?id=${app.id}" class="px-4 py-2 text-sm font-semibold rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-300 transition flex items-center gap-1.5">
-            <i class="fa-regular fa-eye"></i> Track Application
-          </a>
-          <button onclick="handleWithdrawApplication('${app.id}')" class="px-3.5 py-2 text-sm font-medium rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 transition" title="Withdraw Application">
-            Withdraw
-          </button>
-        </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
-function handleWithdrawApplication(appId) {
-  if (confirm('Are you sure you want to withdraw this application? This action cannot be undone.')) {
-    let apps = DB.getApplications();
-    apps = apps.filter(a => a.id !== appId);
-    DB.saveApplications(apps);
+/**
+ * Withdraw Application
+ */
+async function handleWithdrawApplication(appId) {
 
-    // Also remove from company applicants if present
-    let compApps = DB.getCompanyApplicants();
-    compApps = compApps.filter(a => a.id !== appId);
-    DB.saveCompanyApplicants(compApps);
+  if (!confirm(
+    'Are you sure you want to withdraw this application?'
+  )) {
+    return;
+  }
 
-    showToast('Application withdrawn successfully', 'info');
-    initStudentApplications();
+  const token = localStorage.getItem('imp_token');
+
+  if (!token) {
+    showToast('Please sign in again.', 'error');
+    return;
+  }
+
+  try {
+
+    const response = await fetch(
+      `/api/applications/${encodeURIComponent(appId)}/withdraw`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result.error || 'Unable to withdraw application.'
+      );
+    }
+
+    showToast(
+      'Application withdrawn successfully.',
+      'success'
+    );
+
+    await initStudentApplications();
+
+  } catch (error) {
+
+    console.error('Withdraw application error:', error);
+
+    showToast(
+      error.message || 'Failed to withdraw application.',
+      'error'
+    );
   }
 }
 
 /**
- * Initialize Student Application Details Page
+ * Student Application Details
  */
-function initApplicationDetails() {
-  const container = document.getElementById('application-detail-container');
+async function initApplicationDetails() {
+
+  const container = document.getElementById(
+    'application-detail-container'
+  );
+
   if (!container) return;
 
-  const id = getQueryParam('id') || 'app-301';
-  const app = DB.getApplications().find(a => a.id === id) || DB.getApplications()[0];
+  const id = getQueryParam('id');
 
-  const statusColors = {
-    Applied: 'bg-blue-600',
-    Reviewed: 'bg-purple-600',
-    Shortlisted: 'bg-amber-600',
-    Interview: 'bg-indigo-600',
-    Selected: 'bg-emerald-600',
-    Rejected: 'bg-rose-600'
-  };
-
-  container.innerHTML = `
-    <!-- Top Status Card -->
-    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 md:p-8 mb-8 shadow-sm">
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-700">
-        <div class="flex items-center gap-4">
-          <img src="${app.companyLogo}" alt="${app.company}" class="w-16 h-16 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow-sm" />
-          <div>
-            <h1 class="text-2xl font-bold text-slate-900 dark:text-white">${app.jobTitle}</h1>
-            <p class="text-sm font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-2 mt-1">
-              <i class="fa-regular fa-building text-indigo-500"></i> ${app.company}
-              <span class="text-slate-300 dark:text-slate-600">•</span>
-              <span class="text-xs text-slate-500">Application ID: ${app.id}</span>
-            </p>
-          </div>
-        </div>
-
-        <div class="text-right">
-          <span class="text-xs text-slate-500 dark:text-slate-400 font-medium block">Current Status</span>
-          <span class="inline-flex items-center gap-1.5 px-3.5 py-1 text-sm font-bold rounded-full text-white ${statusColors[app.status] || 'bg-indigo-600'} mt-1">
-            <i class="fa-solid fa-circle text-[8px] animate-pulse"></i> ${app.status}
-          </span>
-        </div>
+  if (!id) {
+    container.innerHTML = `
+      <div class="p-8 text-center">
+        <h3 class="text-xl font-bold">
+          Application not found
+        </h3>
       </div>
+    `;
+    return;
+  }
 
-      <!-- Application Timeline -->
-      <div class="mt-8">
-        <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-          <i class="fa-solid fa-bars-progress text-indigo-500"></i> Application Progress Timeline
-        </h2>
+  const token = localStorage.getItem('imp_token');
 
-        <div class="relative pl-6 space-y-8">
-          ${(app.timeline || []).map((t, index) => `
-            <div class="timeline-item relative pl-4">
-              <div class="absolute -left-[27px] top-1 w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs shadow-md shadow-indigo-600/30">
-                <i class="fa-solid fa-check"></i>
-              </div>
-              <div>
-                <div class="flex items-center gap-3">
-                  <h4 class="font-bold text-base text-slate-900 dark:text-white">${t.step}</h4>
-                  <span class="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">${t.date}</span>
+  if (!token) {
+    window.location.href = 'login.html';
+    return;
+  }
+
+  try {
+
+    const response = await fetch(
+      `/api/applications/${encodeURIComponent(id)}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result.error || 'Application not found.'
+      );
+    }
+
+    const app = result.application || result;
+
+    const statusColors = {
+      Applied: 'bg-blue-600',
+      Reviewed: 'bg-purple-600',
+      Shortlisted: 'bg-amber-600',
+      Interview: 'bg-indigo-600',
+      Selected: 'bg-emerald-600',
+      Rejected: 'bg-rose-600'
+    };
+
+    const timeline = Array.isArray(app.timeline)
+      ? app.timeline
+      : [];
+
+    container.innerHTML = `
+
+      <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 md:p-8 mb-8 shadow-sm">
+
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-700">
+
+          <div class="flex items-center gap-4">
+
+            <img
+              src="${app.companyLogo || app.logo || 'https://via.placeholder.com/100'}"
+              alt="${app.company || 'Company'}"
+              class="w-16 h-16 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow-sm"
+            />
+
+            <div>
+
+              <h1 class="text-2xl font-bold text-slate-900 dark:text-white">
+                ${app.jobTitle || app.internshipTitle || 'Internship'}
+              </h1>
+
+              <p class="text-sm font-semibold text-slate-600 dark:text-slate-400 mt-1">
+                <i class="fa-regular fa-building text-indigo-500"></i>
+                ${app.company || 'Company'}
+              </p>
+
+              <p class="text-xs text-slate-500 mt-1">
+                Application ID: ${app.id}
+              </p>
+
+            </div>
+
+          </div>
+
+          <div class="text-right">
+
+            <span class="text-xs text-slate-500 block">
+              Current Status
+            </span>
+
+            <span class="inline-flex items-center gap-1.5 px-3.5 py-1 text-sm font-bold rounded-full text-white ${statusColors[app.status] || 'bg-indigo-600'} mt-1">
+              ${app.status || 'Applied'}
+            </span>
+
+          </div>
+
+        </div>
+
+        <div class="mt-8">
+
+          <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-6">
+            Application Progress Timeline
+          </h2>
+
+          ${
+            timeline.length
+              ? timeline.map(t => `
+                <div class="relative pl-6 mb-6">
+
+                  <div class="absolute left-0 top-1 w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[9px]">
+                    <i class="fa-solid fa-check"></i>
+                  </div>
+
+                  <div class="pl-4">
+
+                    <h4 class="font-bold text-slate-900 dark:text-white">
+                      ${t.step || t.status || 'Status Update'}
+                    </h4>
+
+                    <span class="text-xs text-slate-500">
+                      ${t.date || ''}
+                    </span>
+
+                    <p class="text-sm text-slate-600 dark:text-slate-300 mt-1">
+                      ${t.note || ''}
+                    </p>
+
+                  </div>
+
                 </div>
-                <p class="text-sm text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">${t.note}</p>
-              </div>
-            </div>
-          `).join('')}
+              `).join('')
+              : `
+                <p class="text-sm text-slate-500">
+                  No status updates have been added yet.
+                </p>
+              `
+          }
+
         </div>
+
       </div>
-    </div>
 
-    <!-- 2 Column Submitted Details -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div class="lg:col-span-2 space-y-6">
-        <!-- Cover Letter -->
-        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 md:p-8 shadow-sm">
-          <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-3">Submitted Statement / Cover Letter</h3>
-          <p class="text-slate-600 dark:text-slate-300 leading-relaxed text-sm bg-slate-50 dark:bg-slate-700/40 p-5 rounded-xl border border-slate-100 dark:border-slate-700">
-            ${app.coverLetter}
-          </p>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <div class="lg:col-span-2 space-y-6">
+
+          <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 md:p-8 shadow-sm">
+
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-3">
+              Submitted Statement / Cover Letter
+            </h3>
+
+            <p class="text-slate-600 dark:text-slate-300 leading-relaxed text-sm bg-slate-50 dark:bg-slate-700/40 p-5 rounded-xl">
+              ${app.coverLetter || 'No cover letter provided.'}
+            </p>
+
+          </div>
+
+          <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 md:p-8 shadow-sm">
+
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">
+              Attached Resume Document
+            </h3>
+
+            <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/40 flex items-center justify-between">
+
+              <div class="flex items-center gap-3.5">
+
+                <i class="fa-solid fa-file-pdf text-rose-500 text-3xl"></i>
+
+                <div>
+
+                  <h4 class="font-bold text-sm text-slate-800 dark:text-white">
+                    ${app.resumeName || 'Student Resume.pdf'}
+                  </h4>
+
+                  <p class="text-xs text-slate-500">
+                    Submitted Resume
+                  </p>
+
+                </div>
+
+              </div>
+
+              ${
+                app.resumeUrl
+                  ? `
+                    <a
+                      href="${app.resumeUrl}"
+                      target="_blank"
+                      class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold"
+                    >
+                      <i class="fa-regular fa-eye"></i>
+                      View Resume
+                    </a>
+                  `
+                  : ''
+              }
+
+            </div>
+
+          </div>
+
         </div>
 
-        <!-- Submitted Resume -->
-        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 md:p-8 shadow-sm">
-          <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Attached Resume Document</h3>
-          <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/40 flex items-center justify-between">
-            <div class="flex items-center gap-3.5">
-              <i class="fa-solid fa-file-pdf text-rose-500 text-3xl"></i>
+        <div class="space-y-6">
+
+          <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm">
+
+            <h3 class="text-base font-bold text-slate-900 dark:text-white mb-4">
+              Submission Details
+            </h3>
+
+            <div class="space-y-3.5 text-sm">
+
               <div>
-                <h4 class="font-bold text-sm text-slate-800 dark:text-white">${app.resumeName}</h4>
-                <p class="text-xs text-slate-500 dark:text-slate-400">PDF • Verified Document</p>
+                <span class="text-xs text-slate-400 block">
+                  Applied Date
+                </span>
+
+                <span class="font-semibold text-slate-800 dark:text-slate-200">
+                  ${app.appliedDate || app.createdAt || 'N/A'}
+                </span>
               </div>
-            </div>
-            <a href="resume.html" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition flex items-center gap-1.5">
-              <i class="fa-regular fa-eye"></i> View Resume
-            </a>
-          </div>
-        </div>
-      </div>
 
-      <!-- Right Column: Submission Info -->
-      <div class="space-y-6">
-        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm">
-          <h3 class="text-base font-bold text-slate-900 dark:text-white mb-4 pb-3 border-b border-slate-100 dark:border-slate-700">Submission Details</h3>
-          
-          <div class="space-y-3.5 text-sm">
-            <div>
-              <span class="text-xs text-slate-400 block font-medium">Applied Date</span>
-              <span class="font-semibold text-slate-800 dark:text-slate-200">${app.appliedDate}</span>
+              <div>
+                <span class="text-xs text-slate-400 block">
+                  Earliest Availability
+                </span>
+
+                <span class="font-semibold text-slate-800 dark:text-slate-200">
+                  ${app.availability || 'Immediate'}
+                </span>
+              </div>
+
+              <div>
+                <span class="text-xs text-slate-400 block">
+                  Portfolio / GitHub
+                </span>
+
+                ${
+                  app.portfolioUrl
+                    ? `
+                      <a
+                        href="${app.portfolioUrl}"
+                        target="_blank"
+                        class="font-semibold text-indigo-600 break-all"
+                      >
+                        ${app.portfolioUrl}
+                      </a>
+                    `
+                    : `
+                      <span class="font-semibold text-slate-500">
+                        None provided
+                      </span>
+                    `
+                }
+
+              </div>
+
             </div>
-            <div>
-              <span class="text-xs text-slate-400 block font-medium">Earliest Availability</span>
-              <span class="font-semibold text-slate-800 dark:text-slate-200">${app.availability || 'Immediate'}</span>
+
+            <div class="pt-6 mt-6 border-t border-slate-100 dark:border-slate-700">
+
+              <a
+                href="internship-details.html?id=${app.internshipId}"
+                class="w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-sm transition flex items-center justify-center gap-2"
+              >
+                <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                View Original Job Post
+              </a>
+
             </div>
-            <div>
-              <span class="text-xs text-slate-400 block font-medium">Portfolio / GitHub</span>
-              <a href="${app.portfolioUrl || '#'}" target="_blank" class="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline break-all">${app.portfolioUrl || 'None provided'}</a>
-            </div>
+
           </div>
 
-          <div class="pt-6 mt-6 border-t border-slate-100 dark:border-slate-700">
-            <a href="internship-details.html?id=${app.internshipId}" class="w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-sm transition flex items-center justify-center gap-2">
-              <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i> View Original Job Post
-            </a>
-          </div>
         </div>
+
       </div>
-    </div>
-  `;
+    `;
+
+  } catch (error) {
+
+    console.error('Application details error:', error);
+
+    container.innerHTML = `
+      <div class="py-16 text-center bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-8">
+
+        <div class="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+
+        <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-2">
+          Application Not Found
+        </h3>
+
+        <p class="text-slate-500 text-sm">
+          This application does not exist or you do not have permission to view it.
+        </p>
+
+      </div>
+    `;
+  }
 }
 
 /**
