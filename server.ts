@@ -896,39 +896,141 @@ app.get("/api/stats", (req: Request, res: Response) => {
 });
 
 // Internships API (CRUD)
-app.get("/api/internships", (req: Request, res: Response) => {
-  let list = [...dataStore.internships];
-  const { category, workMode, query, company } = req.query;
+// Internships API - Supabase
+app.get("/api/internships", async (req: Request, res: Response) => {
+  try {
+    const { category, workMode, query, company } = req.query;
 
-  if (category && typeof category === "string") {
-    list = list.filter(item => item.category.toLowerCase() === category.toLowerCase());
-  }
-  if (workMode && typeof workMode === "string") {
-    list = list.filter(item => item.workMode.toLowerCase() === workMode.toLowerCase());
-  }
-  if (company && typeof company === "string") {
-    list = list.filter(item => item.company.toLowerCase().includes(company.toLowerCase()));
-  }
-  if (query && typeof query === "string") {
-    const q = query.toLowerCase();
-    list = list.filter(item =>
-      item.title.toLowerCase().includes(q) ||
-      item.company.toLowerCase().includes(q) ||
-      item.skills.some(s => s.toLowerCase().includes(q)) ||
-      item.location.toLowerCase().includes(q)
-    );
-  }
+    const { data: internships, error } = await supabase
+      .from("internships")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-  res.json(list);
+    if (error) {
+      console.error("Failed to fetch internships:", error);
+      return res.status(500).json({ error: "Failed to fetch internships" });
+    }
+
+    let list = (internships || []).map(item => ({
+      id: item.id,
+      companyId: item.company_id,
+      title: item.title || "",
+      company: item.company_name || "",
+      logo: item.company_logo || "",
+      category: item.category || "",
+      department: item.department || "",
+      location: item.location || "",
+      workMode: item.work_mode || "",
+      type: item.type || "",
+      duration: item.duration || "",
+      stipend: item.stipend || "",
+      stipendAmount: item.stipend_amount || 0,
+      openings: item.openings || 0,
+      postedDate: item.posted_date || item.created_at,
+      deadline: item.deadline || "",
+      skills: item.skills || [],
+      featured: item.featured || false,
+      status: item.status || "active",
+      description: item.description || "",
+      responsibilities: item.responsibilities || [],
+      qualifications: item.qualifications || [],
+      preferredSkills: item.preferred_skills || [],
+      benefits: item.benefits || [],
+      companyInfo: item.company_info || {}
+    }));
+
+    if (category && typeof category === "string") {
+      list = list.filter(item =>
+        item.category.toLowerCase() === category.toLowerCase()
+      );
+    }
+
+    if (workMode && typeof workMode === "string") {
+      list = list.filter(item =>
+        item.workMode.toLowerCase() === workMode.toLowerCase()
+      );
+    }
+
+    if (company && typeof company === "string") {
+      list = list.filter(item =>
+        item.company.toLowerCase().includes(company.toLowerCase())
+      );
+    }
+
+    if (query && typeof query === "string") {
+      const q = query.toLowerCase();
+
+      list = list.filter(item =>
+        item.title.toLowerCase().includes(q) ||
+        item.company.toLowerCase().includes(q) ||
+        item.skills.some((s: string) =>
+          s.toLowerCase().includes(q)
+        ) ||
+        item.location.toLowerCase().includes(q)
+      );
+    }
+
+    return res.json(list);
+
+  } catch (error) {
+    console.error("Internships API error:", error);
+    return res.status(500).json({
+      error: "Failed to fetch internships"
+    });
+  }
 });
 
-app.get("/api/internships/:id", (req: Request, res: Response) => {
-  const item = dataStore.internships.find(i => i.id === req.params.id);
-  if (!item) {
-    return res.status(404).json({ error: "Internship not found" });
+
+app.get("/api/internships/:id", async (req: Request, res: Response) => {
+  try {
+    const { data: item, error } = await supabase
+      .from("internships")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
+
+    if (error || !item) {
+      return res.status(404).json({
+        error: "Internship not found"
+      });
+    }
+
+    return res.json({
+      id: item.id,
+      companyId: item.company_id,
+      title: item.title || "",
+      company: item.company_name || "",
+      logo: item.company_logo || "",
+      category: item.category || "",
+      department: item.department || "",
+      location: item.location || "",
+      workMode: item.work_mode || "",
+      type: item.type || "",
+      duration: item.duration || "",
+      stipend: item.stipend || "",
+      stipendAmount: item.stipend_amount || 0,
+      openings: item.openings || 0,
+      postedDate: item.posted_date || item.created_at,
+      deadline: item.deadline || "",
+      skills: item.skills || [],
+      featured: item.featured || false,
+      status: item.status || "active",
+      description: item.description || "",
+      responsibilities: item.responsibilities || [],
+      qualifications: item.qualifications || [],
+      preferredSkills: item.preferred_skills || [],
+      benefits: item.benefits || [],
+      companyInfo: item.company_info || {}
+    });
+
+  } catch (error) {
+    console.error("Internship details API error:", error);
+    return res.status(500).json({
+      error: "Failed to fetch internship details"
+    });
   }
-  res.json(item);
 });
+
 
 app.post("/api/internships", (req: Request, res: Response) => {
   const session = getSessionFromRequest(req);
