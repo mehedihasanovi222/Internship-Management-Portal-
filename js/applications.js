@@ -164,16 +164,40 @@ async function submitInternshipApplication(e) {
   }
 
   try {
-    await DB.applyForInternship(internship.id, {
-      coverLetter,
-      availability,
-      portfolioUrl,
-      resumeName: student.resume?.fileName || "Student_Resume.pdf",
-      resumeUrl: student.resume?.url || ""
-    });
+  const result = await DB.applyForInternship(internship.id, {
+    coverLetter,
+    availability,
+    portfolioUrl,
+    resumeName: student.resume?.fileName || "Student_Resume.pdf",
+    resumeUrl: student.resume?.url || ""
+  });
 
-    closeModal('apply-internship-modal');
-    showToast(`Application successfully submitted to ${internship.company}! 🎉`, 'success', 4000);
+  if (!result || result.error || !result.success) {
+    throw new Error(
+      result?.error || 'Failed to submit application.'
+    );
+  }
+
+  closeModal('apply-internship-modal');
+
+  showToast(
+    `Application successfully submitted to ${internship.company}! 🎉`,
+    'success',
+    4000
+  );
+
+  if (document.getElementById('student-applications-container')) {
+    await initStudentApplications();
+  }
+
+} catch (err) {
+  console.error('Application submission error:', err);
+
+  showToast(
+    err.message || 'Submission failed. Please try again.',
+    'error'
+  );
+}
 
     // Refresh if on student applications page
     if (document.getElementById('student-applications-container')) {
