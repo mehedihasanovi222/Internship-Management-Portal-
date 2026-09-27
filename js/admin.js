@@ -67,23 +67,39 @@ const AdminApp = {
     return [];
   },
 
-  async verifyCompany(id, verified, status = 'active') {
-    try {
-      const res = await fetch(`/api/admin/verify-company/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ verified, status })
-      });
-      if (res.ok) {
-        showToast(verified ? 'Company verified & approved to post internships! 🚀' : 'Company application status updated.', verified ? 'success' : 'warning');
-        return true;
-      }
-    } catch (e) {
-      console.error('Error verifying company:', e);
+async verifyCompany(id, verified, status = 'active') {
+  try {
+    const token = localStorage.getItem('imp_token');
+
+    const res = await fetch(`/api/admin/verify-company/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ verified, status })
+    });
+
+    if (res.ok) {
+      showToast(
+        verified
+          ? 'Company verified & approved to post internships! 🚀'
+          : 'Company application status updated.',
+        verified ? 'success' : 'warning'
+      );
+      return true;
     }
-    showToast('Failed to update company verification status.', 'error');
-    return false;
-  },
+
+    const errorData = await res.json().catch(() => ({}));
+    console.error('Company verification failed:', errorData);
+
+  } catch (e) {
+    console.error('Error verifying company:', e);
+  }
+
+  showToast('Failed to update company verification status.', 'error');
+  return false;
+},
 
   async updateUserStatus(role, id, status) {
    try {
