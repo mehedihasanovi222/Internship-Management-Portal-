@@ -117,7 +117,10 @@
     }
 
     function renderStudents(list) {
-      const tbody = document.getElementById('student-table-body');
+  console.log("SUPABASE STUDENT DATA:", list);
+  console.log("FIRST STUDENT:", list && list.length ? list[0] : null);
+
+  const tbody = document.getElementById('student-table-body');
       if (!tbody) return;
 
       if (!list || list.length === 0) {
