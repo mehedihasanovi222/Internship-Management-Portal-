@@ -107,21 +107,32 @@ const token = localStorage.getItem('imp_token');
     return false;
   },
 
-  async deleteInternship(id) {
-    try {
-      const res = await fetch(`/api/admin/internships/${id}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
-        showToast('Internship post moderated and removed from live portal.', 'info');
-        return true;
+async deleteInternship(id) {
+  try {
+    const token = localStorage.getItem('imp_token');
+
+    const res = await fetch(`/api/admin/internships/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
       }
-    } catch (e) {
-      console.error('Error deleting internship:', e);
+    });
+
+    if (res.ok) {
+      showToast('Internship post moderated and removed from live portal.', 'info');
+      return true;
     }
-    showToast('Failed to delete internship.', 'error');
-    return false;
-  },
+
+    const errorData = await res.json().catch(() => ({}));
+    console.error('Delete internship failed:', errorData);
+
+  } catch (e) {
+    console.error('Error deleting internship:', e);
+  }
+
+  showToast('Failed to delete internship.', 'error');
+  return false;
+},
 
   async broadcastNotice(title, message, target) {
     try {
