@@ -276,7 +276,8 @@ async function initStudentApplications() {
   }
 }
 function setupStudentApplicationFilters() {
-  const tabButtons = document.querySelectorAll('.student-app-tab');
+  
+const tabButtons = document.querySelectorAll('.app-filter-tab, .student-app-tab');
 
   tabButtons.forEach(btn => {
     btn.onclick = () => {
