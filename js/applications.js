@@ -147,72 +147,82 @@ function openApplyModal(internshipId) {
 
 async function submitInternshipApplication(e) {
   e.preventDefault();
+
   const internshipId = document.getElementById('apply-internship-id').value;
   const internship = DB.getInternshipById(internshipId);
   const student = DB.getStudentProfile();
 
-  if (!internship) return;
+  if (!internship) {
+    showToast('Internship not found.', 'error');
+    return;
+  }
 
   const availability = document.getElementById('apply-availability').value;
-  const portfolioUrl = document.getElementById('apply-portfolio').value;
-  const coverLetter = document.getElementById('apply-cover-letter').value;
+  const portfolioUrl = document.getElementById('apply-portfolio').value.trim();
+  const coverLetter = document.getElementById('apply-cover-letter').value.trim();
 
   const submitBtn = e.target.querySelector('button[type="submit"]');
+
   if (submitBtn) {
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Submitting...';
+    submitBtn.innerHTML =
+      '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Submitting...';
   }
 
   try {
-  const result = await DB.applyForInternship(internship.id, {
-    coverLetter,
-    availability,
-    portfolioUrl,
-    resumeName: student.resume?.fileName || "Student_Resume.pdf",
-    resumeUrl: student.resume?.url || ""
-  });
+    const result = await DB.applyForInternship(internship.id, {
+      coverLetter,
+      availability,
+      portfolioUrl,
+      resumeName: student.resume?.fileName || 'Student_Resume.pdf',
+      resumeUrl: student.resume?.url || ''
+    });
 
-  if (!result || result.error || !result.success) {
-    throw new Error(
-      result?.error || 'Failed to submit application.'
+    if (!result || result.error || !result.success) {
+      throw new Error(
+        result?.error || 'Failed to submit application.'
+      );
+    }
+
+    closeModal('apply-internship-modal');
+
+    showToast(
+      `Application successfully submitted to ${internship.company}! 🎉`,
+      'success',
+      4000
     );
-  }
 
-  closeModal('apply-internship-modal');
-
-  showToast(
-    `Application successfully submitted to ${internship.company}! 🎉`,
-    'success',
-    4000
-  );
-
-  if (document.getElementById('student-applications-container')) {
-    await initStudentApplications();
-  }
-
-} catch (err) {
-  console.error('Application submission error:', err);
-
-  showToast(
-    err.message || 'Submission failed. Please try again.',
-    'error'
-  );
-}
-
-    // Refresh if on student applications page
+    // If already on My Applications page, refresh it.
     if (document.getElementById('student-applications-container')) {
       await initStudentApplications();
+    } else {
+      // Otherwise go directly to My Applications.
+      const isStudentPortal =
+        window.location.pathname.includes('/student/');
+
+      setTimeout(() => {
+        window.location.href = isStudentPortal
+          ? 'applications.html'
+          : 'pages/student/applications.html';
+      }, 1200);
     }
+
   } catch (err) {
-    showToast(err.message || 'Submission failed. Please try again.', 'error');
+    console.error('Application submission error:', err);
+
+    showToast(
+      err.message || 'Submission failed. Please try again.',
+      'error'
+    );
+
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;
-      submitBtn.innerHTML = 'Submit Application';
+      submitBtn.innerHTML =
+        '<i class="fa-regular fa-paper-plane"></i><span>Submit Application</span>';
     }
   }
 }
-
 /**
  * Student Applications - Supabase
  */
