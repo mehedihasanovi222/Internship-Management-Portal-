@@ -1279,245 +1279,630 @@ app.patch("/api/internships/:id/status", (req: Request, res: Response) => {
   res.json({ success: true, internship: item });
 });
 
-// Applications API (Strict RBAC & User Session Isolation)
-app.get("/api/applications", (req: Request, res: Response) => {
-  const session = getSessionFromRequest(req);
-  let list = [...dataStore.applications];
-  const { studentId, company, companyId, status, internshipId } = req.query;
+// Applications API (Supabase)
 
-  // Strict RBAC isolation
-  if (session && session.role === "student") {
-    list = list.filter(a => a.studentId === session.userId || a.studentEmail?.toLowerCase() === session.email.toLowerCase());
-  } else if (session && session.role === "company") {
-    const comp = dataStore.companies.find(c => c.id === session.userId || c.email.toLowerCase() === session.email.toLowerCase());
-    const compName = comp ? comp.name.toLowerCase() : "";
-    list = list.filter(a => 
-      (a.companyId && a.companyId === session.userId) || 
-      (compName && a.company?.toLowerCase() === compName)
-    );
-  }
+app.get("/api/applications", async (req: Request, res: Response) => {
+  try {
+    const session = await getSessionFromRequest(req);
 
-  if (studentId && typeof studentId === "string" && (!session || session.role === "admin")) {
-    list = list.filter(a => a.studentId === studentId);
-  }
-  if (internshipId && typeof internshipId === "string") {
-    list = list.filter(a => a.internshipId === internshipId);
-  }
-  if (companyId && typeof companyId === "string" && (!session || session.role === "admin")) {
-    list = list.filter(a => a.companyId === companyId);
-  }
-  if (company && typeof company === "string" && (!session || session.role === "admin")) {
-    list = list.filter(a => a.company.toLowerCase().includes(company.toLowerCase()));
-  }
-  if (status && typeof status === "string") {
-    list = list.filter(a => a.status.toLowerCase() === status.toLowerCase());
-  }
+    if (!session) {
+      return res.status(401).json({
+        error: "Authentication required."
+      });
+    }
 
-  res.json(list);
-});
+    const { studentId, companyId, status, internshipId } = req.query;
 
-// Check if student already applied for this internship
-app.get("/api/applications/check", (req: Request, res: Response) => {
-  const session = getSessionFromRequest(req);
-  const { internshipId } = req.query;
-  const effectiveStudentId = (session?.role === "student" ? session.userId : (req.query.studentId as string)) || "";
-  const effectiveStudentEmail = (session?.role === "student" ? session.email : (req.query.studentEmail as string)) || "";
+    let query = supabase
+      .from("applications")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-  const existingApp = dataStore.applications.find(a => 
-    a.internshipId === internshipId && 
-    ((effectiveStudentId && a.studentId === effectiveStudentId) || (effectiveStudentEmail && a.studentEmail?.toLowerCase() === effectiveStudentEmail.toLowerCase()))
-  );
-  res.json({ hasApplied: Boolean(existingApp), application: existingApp || null });
-});
+    if (session.role === "student") {
+      query = query.eq("student_id", session.userId);
+    } else if (session.role === "company") {
+      query = query.eq("company_id", session.userId);
+    } else if (session.role === "admin") {
+      if (studentId && typeof studentId === "string") {
+        query = query.eq("student_id", studentId);
+      }
 
-app.post("/api/applications", (req: Request, res: Response) => {
-  const session = getSessionFromRequest(req);
-  if (!session) {
-    return res.status(401).json({ error: "Authentication required. Please sign in as a student to apply." });
-  }
-  if (session.role !== "student" && session.role !== "admin") {
-    return res.status(403).json({ error: "Access denied. Only students can submit internship applications." });
-  }
+      if (companyId && typeof companyId === "string") {
+        query = query.eq("company_id", companyId);
+      }
+    }
 
-  const { internshipId } = req.body;
-  const effectiveStudentId = session.role === "student" ? session.userId : (req.body.studentId || "std-" + Date.now());
-  const effectiveStudentEmail = session.role === "student" ? session.email : (req.body.studentEmail || "student@university.edu");
+    if (internshipId && typeof internshipId === "string") {
+      query = query.eq("internship_id", internshipId);
+    }
 
-  // Duplicate Application Prevention
-  const existingApp = dataStore.applications.find(a => 
-    a.internshipId === internshipId && 
-    (a.studentId === effectiveStudentId || a.studentEmail?.toLowerCase() === effectiveStudentEmail.toLowerCase())
-  );
+    if (status && typeof status === "string") {
+      query = query.eq("status", status);
+    }
 
-  if (existingApp) {
-    return res.status(409).json({ 
-      error: "You have already applied for this internship.", 
-      application: existingApp 
+    const { data: applications, error } = await query;
+
+    if (error) {
+      console.error("Failed to fetch applications:", error);
+
+      return res.status(500).json({
+        error: "Failed to fetch applications."
+      });
+    }
+
+    const formattedApplications = (applications || []).map((app: any) => ({
+      id: app.id,
+      internshipId: app.internship_id,
+      companyId: app.company_id,
+      studentId: app.student_id,
+
+      studentName: app.student_name || "",
+      studentEmail: app.student_email || "",
+      studentPhone: app.student_phone || "",
+      studentUniversity: app.student_university || "",
+      studentDepartment: app.student_department || "",
+      studentCgpa: app.student_cgpa ?? null,
+      studentPhoto: app.student_photo || "",
+
+      jobTitle: app.job_title || "",
+      company: app.company || "",
+      companyLogo: app.company_logo || "",
+
+      appliedDate: app.applied_date || app.created_at,
+
+      status: app.status || "Applied",
+
+      resumeName: app.resume_name || "",
+      resumeUrl: app.resume_url || "",
+
+      coverLetter: app.cover_letter || "",
+      availability: app.availability || "",
+
+      portfolioUrl: app.portfolio_url || "",
+      githubUrl: app.github_url || "",
+
+      timeline: Array.isArray(app.timeline)
+        ? app.timeline
+        : []
+    }));
+
+    return res.json(formattedApplications);
+
+  } catch (error) {
+    console.error("Applications API error:", error);
+
+    return res.status(500).json({
+      error: "Failed to fetch applications."
     });
   }
-
-  const internship = dataStore.internships.find(i => i.id === internshipId);
-  const student = dataStore.students.find(s => 
-    s.id === effectiveStudentId || s.email.toLowerCase() === effectiveStudentEmail.toLowerCase()
-  );
-
-  const studentResume = student?.resume || {};
-  const finalResumeName = req.body.resumeName || studentResume.fileName || "Student_Resume.pdf";
-  const finalResumeUrl = req.body.resumeUrl || studentResume.url || "";
-
-  const newApp: Application = {
-    id: "app-" + Date.now(),
-    internshipId: internshipId || (internship ? internship.id : "int-101"),
-    companyId: internship?.companyId || (internship ? "comp-" + internship.company.toLowerCase().replace(/[^a-z0-9]/g, "") : undefined),
-    studentId: effectiveStudentId,
-    studentName: req.body.studentName || student?.name || session.name || "Candidate Scholar",
-    studentEmail: effectiveStudentEmail,
-    studentPhone: req.body.studentPhone || student?.phone || "+880 1700-000000",
-    studentUniversity: req.body.studentUniversity || student?.university || "University of Computer Studies & Engineering",
-    studentDepartment: req.body.studentDepartment || student?.department || "Computer Science & Engineering",
-    studentCgpa: req.body.studentCgpa || student?.cgpa || "3.75",
-    studentPhoto: req.body.studentPhoto || student?.avatar || session.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
-    jobTitle: req.body.jobTitle || internship?.title || "Technology Intern",
-    company: req.body.company || internship?.company || "TechNova Solutions",
-    companyLogo: req.body.companyLogo || internship?.logo || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80",
-    appliedDate: new Date().toISOString().split("T")[0],
-    status: "Applied",
-    resumeName: finalResumeName,
-    resumeUrl: finalResumeUrl,
-    coverLetter: req.body.coverLetter || "Enthusiastic candidate applying for this opening.",
-    availability: req.body.availability || "Immediate",
-    portfolioUrl: req.body.portfolioUrl || student?.socials?.portfolio,
-    githubUrl: req.body.githubUrl || student?.socials?.github,
-    timeline: [
-      { step: "Applied", date: new Date().toISOString().split("T")[0], note: "Application submitted with resume and profile." }
-    ]
-  };
-
-  dataStore.applications.unshift(newApp);
-  logAuditEvent("APPLICATION_SUBMITTED", `Application submitted by ${newApp.studentName} for ${newApp.jobTitle} at ${newApp.company}`, req, {
-    email: session.email,
-    role: session.role,
-    userId: session.userId,
-    status: "success"
-  });
-
-  // Notify company
-  dataStore.notifications.unshift({
-    id: "notif-" + Date.now(),
-    target: "company",
-    title: "New Application Received 📄",
-    message: `${newApp.studentName} submitted an application for ${newApp.jobTitle}.`,
-    date: new Date().toISOString().replace("T", " ").substring(0, 16),
-    read: false,
-    type: "applicant"
-  });
-
-  saveDatabase();
-  res.status(201).json({ success: true, application: newApp });
 });
 
-app.put("/api/applications/:id/status", (req: Request, res: Response) => {
-  const session = getSessionFromRequest(req);
-  if (!session || (session.role !== "company" && session.role !== "admin")) {
-    return res.status(403).json({ error: "Access denied. Company or Admin credentials required." });
-  }
 
-  const appItem = dataStore.applications.find(a => a.id === req.params.id);
-  if (!appItem) {
-    return res.status(404).json({ error: "Application not found" });
-  }
+// Check if student already applied
 
-  if (session.role === "company") {
-    const comp = dataStore.companies.find(c => c.id === session.userId || c.email.toLowerCase() === session.email.toLowerCase());
-    const compName = comp ? comp.name.toLowerCase() : "";
-    if (appItem.companyId && appItem.companyId !== session.userId && compName && appItem.company?.toLowerCase() !== compName) {
-      return res.status(403).json({ error: "Unauthorized to update status of candidates for another company." });
+app.get("/api/applications/check", async (req: Request, res: Response) => {
+  try {
+    const session = await getSessionFromRequest(req);
+
+    if (!session || session.role !== "student") {
+      return res.status(403).json({
+        error: "Student authentication required."
+      });
     }
-  }
 
-  const newStatus = req.body.status;
-  appItem.status = newStatus;
+    const { internshipId } = req.query;
 
-  if (!appItem.timeline) appItem.timeline = [];
-  appItem.timeline.push({
-    step: newStatus,
-    date: new Date().toISOString().split("T")[0],
-    note: req.body.note || `Status updated to ${newStatus}`
-  });
-
-  logAuditEvent("APPLICATION_STATUS_UPDATED", `Application ${appItem.id} status changed to ${newStatus} by ${session.email}`, req, {
-    email: session.email,
-    role: session.role,
-    userId: session.userId,
-    status: "success"
-  });
-
-  // Notify Student
-  dataStore.notifications.unshift({
-    id: "notif-" + Date.now(),
-    target: "student",
-    title: `Application Status: ${newStatus} 🎯`,
-    message: `Your application for "${appItem.jobTitle}" at ${appItem.company} is now ${newStatus}.`,
-    date: new Date().toISOString().replace("T", " ").substring(0, 16),
-    read: false,
-    type: "status"
-  });
-
-  saveDatabase();
-  res.json({ success: true, application: appItem });
-});
-
-app.patch("/api/applications/:id/status", (req: Request, res: Response) => {
-  const session = getSessionFromRequest(req);
-  if (!session || (session.role !== "company" && session.role !== "admin")) {
-    return res.status(403).json({ error: "Access denied. Company or Admin credentials required." });
-  }
-
-  const appItem = dataStore.applications.find(a => a.id === req.params.id);
-  if (!appItem) {
-    return res.status(404).json({ error: "Application not found" });
-  }
-
-  if (session.role === "company") {
-    const comp = dataStore.companies.find(c => c.id === session.userId || c.email.toLowerCase() === session.email.toLowerCase());
-    const compName = comp ? comp.name.toLowerCase() : "";
-    if (appItem.companyId && appItem.companyId !== session.userId && compName && appItem.company?.toLowerCase() !== compName) {
-      return res.status(403).json({ error: "Unauthorized to update status of candidates for another company." });
+    if (!internshipId || typeof internshipId !== "string") {
+      return res.status(400).json({
+        error: "Internship ID is required."
+      });
     }
+
+    const { data: existingApp, error } = await supabase
+      .from("applications")
+      .select("*")
+      .eq("student_id", session.userId)
+      .eq("internship_id", internshipId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Application check error:", error);
+
+      return res.status(500).json({
+        error: "Failed to check application."
+      });
+    }
+
+    return res.json({
+      hasApplied: Boolean(existingApp),
+      application: existingApp || null
+    });
+
+  } catch (error) {
+    console.error("Application check API error:", error);
+
+    return res.status(500).json({
+      error: "Failed to check application."
+    });
   }
-
-  const newStatus = req.body.status;
-  appItem.status = newStatus;
-
-  if (!appItem.timeline) appItem.timeline = [];
-  appItem.timeline.push({
-    step: newStatus,
-    date: new Date().toISOString().split("T")[0],
-    note: req.body.note || `Status updated to ${newStatus}`
-  });
-
-  logAuditEvent("APPLICATION_STATUS_UPDATED", `Application ${appItem.id} status changed to ${newStatus} by ${session.email}`, req, {
-    email: session.email,
-    role: session.role,
-    userId: session.userId,
-    status: "success"
-  });
-
-  // Notify Student
-  dataStore.notifications.unshift({
-    id: "notif-" + Date.now(),
-    target: "student",
-    title: `Application Status: ${newStatus} 🎯`,
-    message: `Your application for "${appItem.jobTitle}" at ${appItem.company} is now ${newStatus}.`,
-    date: new Date().toISOString().replace("T", " ").substring(0, 16),
-    read: false,
-    type: "status"
-  });
-
-  saveDatabase();
-  res.json({ success: true, application: appItem });
 });
 
+
+// Submit real internship application
+
+app.post("/api/applications", async (req: Request, res: Response) => {
+  try {
+    const session = await getSessionFromRequest(req);
+
+    if (!session) {
+      return res.status(401).json({
+        error: "Authentication required. Please sign in."
+      });
+    }
+
+    if (session.role !== "student") {
+      return res.status(403).json({
+        error: "Only students can submit internship applications."
+      });
+    }
+
+    const { internshipId } = req.body;
+
+    if (!internshipId) {
+      return res.status(400).json({
+        error: "Internship ID is required."
+      });
+    }
+
+    // Get internship from Supabase
+
+    const { data: internship, error: internshipError } = await supabase
+      .from("internships")
+      .select("*")
+      .eq("id", internshipId)
+      .single();
+
+    if (internshipError || !internship) {
+      return res.status(404).json({
+        error: "Internship not found."
+      });
+    }
+
+    // Prevent duplicate application
+
+    const { data: existingApp } = await supabase
+      .from("applications")
+      .select("id")
+      .eq("student_id", session.userId)
+      .eq("internship_id", internshipId)
+      .maybeSingle();
+
+    if (existingApp) {
+      return res.status(409).json({
+        error: "You have already applied for this internship.",
+        application: existingApp
+      });
+    }
+
+    // Get student profile
+
+    const { data: student } = await supabase
+      .from("students")
+      .select("*")
+      .eq("id", session.userId)
+      .single();
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", session.userId)
+      .single();
+
+    const today = new Date().toISOString().split("T")[0];
+
+    const newApplication = {
+      student_id: session.userId,
+      internship_id: internship.id,
+      company_id: internship.company_id,
+
+      student_name:
+        profile?.name ||
+        session.name ||
+        "",
+
+      student_email:
+        profile?.email ||
+        session.email ||
+        "",
+
+      student_phone:
+        profile?.phone ||
+        "",
+
+      student_university:
+        student?.university ||
+        "",
+
+      student_department:
+        student?.department ||
+        "",
+
+      student_cgpa:
+        student?.cgpa ??
+        null,
+
+      student_photo:
+        profile?.avatar_url ||
+        session.avatar ||
+        "",
+
+      job_title:
+        internship.title ||
+        "",
+
+      company:
+        internship.company_name ||
+        "",
+
+      company_logo:
+        internship.company_logo ||
+        "",
+
+      applied_date: today,
+
+      status: "Applied",
+
+      resume_name:
+        student?.resume_name ||
+        "",
+
+      resume_url:
+        student?.resume_url ||
+        "",
+
+      cover_letter:
+        req.body.coverLetter ||
+        "",
+
+      availability:
+        req.body.availability ||
+        "",
+
+      portfolio_url:
+        student?.portfolio_url ||
+        "",
+
+      github_url:
+        student?.github_url ||
+        "",
+
+      timeline: [
+        {
+          step: "Applied",
+          date: today,
+          note: "Application submitted."
+        }
+      ]
+    };
+
+    const { data: createdApplication, error: applicationError } =
+      await supabase
+        .from("applications")
+        .insert(newApplication)
+        .select("*")
+        .single();
+
+    if (applicationError || !createdApplication) {
+      console.error("Application creation error:", applicationError);
+
+      return res.status(500).json({
+        error:
+          applicationError?.message ||
+          "Failed to submit application."
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      application: createdApplication
+    });
+
+  } catch (error) {
+    console.error("Application submission API error:", error);
+
+    return res.status(500).json({
+      error: "Failed to submit application."
+    });
+  }
+});
+
+
+// Get one real application
+
+app.get("/api/applications/:id", async (req: Request, res: Response) => {
+  try {
+    const session = await getSessionFromRequest(req);
+
+    if (!session) {
+      return res.status(401).json({
+        error: "Authentication required."
+      });
+    }
+
+    const { data: application, error } = await supabase
+      .from("applications")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
+
+    if (error || !application) {
+      return res.status(404).json({
+        error: "Application not found."
+      });
+    }
+
+    // Student can only view own application
+
+    if (
+      session.role === "student" &&
+      application.student_id !== session.userId
+    ) {
+      return res.status(403).json({
+        error: "You are not authorized to view this application."
+      });
+    }
+
+    // Company can only view its own applicants
+
+    if (
+      session.role === "company" &&
+      application.company_id !== session.userId
+    ) {
+      return res.status(403).json({
+        error: "You are not authorized to view this application."
+      });
+    }
+
+    const formattedApplication = {
+      id: application.id,
+      internshipId: application.internship_id,
+      companyId: application.company_id,
+      studentId: application.student_id,
+
+      studentName: application.student_name || "",
+      studentEmail: application.student_email || "",
+      studentPhone: application.student_phone || "",
+      studentUniversity: application.student_university || "",
+      studentDepartment: application.student_department || "",
+      studentCgpa: application.student_cgpa ?? null,
+      studentPhoto: application.student_photo || "",
+
+      jobTitle: application.job_title || "",
+      company: application.company || "",
+      companyLogo: application.company_logo || "",
+
+      appliedDate:
+        application.applied_date ||
+        application.created_at,
+
+      status:
+        application.status ||
+        "Applied",
+
+      resumeName:
+        application.resume_name ||
+        "",
+
+      resumeUrl:
+        application.resume_url ||
+        "",
+
+      coverLetter:
+        application.cover_letter ||
+        "",
+
+      availability:
+        application.availability ||
+        "",
+
+      portfolioUrl:
+        application.portfolio_url ||
+        "",
+
+      githubUrl:
+        application.github_url ||
+        "",
+
+      timeline:
+        Array.isArray(application.timeline)
+          ? application.timeline
+          : []
+    };
+
+    return res.json({
+      application: formattedApplication
+    });
+
+  } catch (error) {
+    console.error("Application details API error:", error);
+
+    return res.status(500).json({
+      error: "Failed to load application."
+    });
+  }
+});
+
+
+// Withdraw application
+
+app.patch("/api/applications/:id/withdraw", async (req: Request, res: Response) => {
+  try {
+    const session = await getSessionFromRequest(req);
+
+    if (!session || session.role !== "student") {
+      return res.status(403).json({
+        error: "Only the student who owns the application can withdraw it."
+      });
+    }
+
+    const { data: application, error: findError } = await supabase
+      .from("applications")
+      .select("*")
+      .eq("id", req.params.id)
+      .eq("student_id", session.userId)
+      .single();
+
+    if (findError || !application) {
+      return res.status(404).json({
+        error: "Application not found."
+      });
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+
+    const existingTimeline = Array.isArray(application.timeline)
+      ? application.timeline
+      : [];
+
+    const updatedTimeline = [
+      ...existingTimeline,
+      {
+        step: "Withdrawn",
+        date: today,
+        note: "Application withdrawn by student."
+      }
+    ];
+
+    const { data: updatedApplication, error: updateError } =
+      await supabase
+        .from("applications")
+        .update({
+          status: "Withdrawn",
+          timeline: updatedTimeline,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", req.params.id)
+        .eq("student_id", session.userId)
+        .select("*")
+        .single();
+
+    if (updateError || !updatedApplication) {
+      console.error("Withdraw application error:", updateError);
+
+      return res.status(500).json({
+        error: "Failed to withdraw application."
+      });
+    }
+
+    return res.json({
+      success: true,
+      application: updatedApplication
+    });
+
+  } catch (error) {
+    console.error("Withdraw API error:", error);
+
+    return res.status(500).json({
+      error: "Failed to withdraw application."
+    });
+  }
+});
+
+
+// Company/Admin application status update
+
+app.patch("/api/applications/:id/status", async (req: Request, res: Response) => {
+  try {
+    const session = await getSessionFromRequest(req);
+
+    if (
+      !session ||
+      (session.role !== "company" && session.role !== "admin")
+    ) {
+      return res.status(403).json({
+        error: "Only companies or administrators can update application status."
+      });
+    }
+
+    const newStatus = req.body.status;
+
+    if (!newStatus) {
+      return res.status(400).json({
+        error: "Application status is required."
+      });
+    }
+
+    const { data: application, error: findError } = await supabase
+      .from("applications")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
+
+    if (findError || !application) {
+      return res.status(404).json({
+        error: "Application not found."
+      });
+    }
+
+    if (
+      session.role === "company" &&
+      application.company_id !== session.userId
+    ) {
+      return res.status(403).json({
+        error: "You are not authorized to update this application."
+      });
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+
+    const existingTimeline = Array.isArray(application.timeline)
+      ? application.timeline
+      : [];
+
+    const updatedTimeline = [
+      ...existingTimeline,
+      {
+        step: newStatus,
+        date: today,
+        note:
+          req.body.note ||
+          `Status updated to ${newStatus}`
+      }
+    ];
+
+    const { data: updatedApplication, error: updateError } =
+      await supabase
+        .from("applications")
+        .update({
+          status: newStatus,
+          timeline: updatedTimeline,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", req.params.id)
+        .select("*")
+        .single();
+
+    if (updateError || !updatedApplication) {
+      console.error("Application status update error:", updateError);
+
+      return res.status(500).json({
+        error: "Failed to update application status."
+      });
+    }
+
+    return res.json({
+      success: true,
+      application: updatedApplication
+    });
+
+  } catch (error) {
+    console.error("Application status API error:", error);
+
+    return res.status(500).json({
+      error: "Failed to update application status."
+    });
+  }
+});
 // Companies API (Corporate Directory & Admin Verification)
 app.get("/api/companies", async (req: Request, res: Response) => {
   try {
