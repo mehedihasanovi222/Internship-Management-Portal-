@@ -2917,8 +2917,8 @@ app.get("/api/admin/sessions", (req: Request, res: Response) => {
 });
 
 // Admin Revoke Active Session Endpoint
-app.delete("/api/admin/sessions/:token", (req: Request, res: Response) => {
-  const session = getSessionFromRequest(req);
+app.delete("/api/admin/sessions/:token", async (req: Request, res: Response) => {
+  const session = await getSessionFromRequest(req);
   if (!session || session.role !== "admin") {
     return res.status(403).json({ error: "Access denied. Administrator privileges required." });
   }
@@ -2940,8 +2940,8 @@ app.delete("/api/admin/sessions/:token", (req: Request, res: Response) => {
 });
 
 // Admin Audit Logs Endpoint
-app.get("/api/admin/audit-logs", (req: Request, res: Response) => {
-  const session = getSessionFromRequest(req);
+app.get("/api/admin/audit-logs", async (req: Request, res: Response) => {
+  const session = await getSessionFromRequest(req);
   if (!session || session.role !== "admin") {
     return res.status(403).json({ error: "Access denied. Administrator privileges required." });
   }
@@ -2952,8 +2952,8 @@ app.get("/api/admin/audit-logs", (req: Request, res: Response) => {
 });
 
 // Admin User Management & Platform Administration
-app.get("/api/admin/users", (req: Request, res: Response) => {
-  const session = getSessionFromRequest(req);
+app.get("/api/admin/users", async (req: Request, res: Response) => {
+  const session = await getSessionFromRequest(req);
   if (!session || session.role !== "admin") {
     return res.status(403).json({ error: "Access denied. Administrator privileges required." });
   }
@@ -2970,8 +2970,8 @@ app.get("/api/admin/users", (req: Request, res: Response) => {
   });
 });
 
-app.patch("/api/admin/users/:role/:id/status", (req: Request, res: Response) => {
-  const session = getSessionFromRequest(req);
+app.patch("/api/admin/users/:role/:id/status", async (req: Request, res: Response) => {
+  const session = await getSessionFromRequest(req);
   if (!session || session.role !== "admin") {
     return res.status(403).json({ error: "Access denied. Administrator privileges required." });
   }
@@ -2979,17 +2979,54 @@ app.patch("/api/admin/users/:role/:id/status", (req: Request, res: Response) => 
   const { role, id } = req.params;
   const { status } = req.body;
 
-  if (role === "student") {
-    const student = dataStore.students.find(s => s.id === id);
-    if (!student) return res.status(404).json({ error: "Student not found" });
+if (role === "student") {
+
+  const normalizedStatus = status === "suspended" ? "suspended" : "active";
+
+  const { data: updatedStudent, error: studentError } = await supabase
+
+    .from("students")
+
+    .update({
+
+      status: normalizedStatus,
+
+      updated_at: new Date().toISOString()
+
+    })
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (studentError || !updatedStudent) {
+    console.error("Admin student status update failed:", studentError);
+    return res.status(500).json({
+      error: studentError?.message || "Failed to update student status"
+    });
+  }
+
+  const student = dataStore.students.find(s => s.id === id);
+  if (student) {
     student.status = status;
-    logAuditEvent("USER_STATUS_CHANGE", `Admin changed student ${student.email} status to ${status}`, req, {
+    saveDatabase();
+  }
+
+  logAuditEvent(
+    "USER_STATUS_CHANGE",
+    `Admin changed student ${id} status to ${status}`,
+    req,
+    {
       role: "admin",
       status: "warning"
-    });
-    saveDatabase();
-    return res.json({ success: true, user: student });
-  } else if (role === "company") {
+    }
+  );
+
+  return res.json({
+    success: true,
+    user: updatedStudent
+  });
+}
+ else if (role === "company") {
     const company = dataStore.companies.find(c => c.id === id);
     if (!company) return res.status(404).json({ error: "Company not found" });
     company.status = status;
@@ -3006,8 +3043,8 @@ app.patch("/api/admin/users/:role/:id/status", (req: Request, res: Response) => 
 });
 
 // Admin Company Verification & Approval Endpoint
-app.patch("/api/admin/verify-company/:id", (req: Request, res: Response) => {
-  const session = getSessionFromRequest(req);
+app.patch("/api/admin/verify-company/:id", async (req: Request, res: Response) => {
+  const session = await getSessionFromRequest(req);
   if (!session || session.role !== "admin") {
     return res.status(403).json({ error: "Access denied. Administrator privileges required." });
   }
@@ -3043,8 +3080,8 @@ app.patch("/api/admin/verify-company/:id", (req: Request, res: Response) => {
   return res.json({ success: true, company });
 });
 
-app.delete("/api/admin/internships/:id", (req: Request, res: Response) => {
-  const session = getSessionFromRequest(req);
+app.delete("/api/admin/internships/:id", async (req: Request, res: Response) => {
+  const session = await getSessionFromRequest(req);
   if (!session || session.role !== "admin") {
     return res.status(403).json({ error: "Access denied. Administrator privileges required." });
   }
@@ -3065,8 +3102,8 @@ app.delete("/api/admin/internships/:id", (req: Request, res: Response) => {
 });
 
 // Admin Broadcast & Actions
-app.post("/api/admin/broadcast", (req: Request, res: Response) => {
-  const session = getSessionFromRequest(req);
+app.post("/api/admin/broadcast", async (req: Request, res: Response) => {
+  const session = await getSessionFromRequest(req);
   if (!session || session.role !== "admin") {
     return res.status(403).json({ error: "Access denied. Administrator privileges required." });
   }
