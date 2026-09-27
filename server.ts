@@ -3066,21 +3066,154 @@ app.get("/api/admin/audit-logs", async (req: Request, res: Response) => {
 
 // Admin User Management & Platform Administration
 app.get("/api/admin/users", async (req: Request, res: Response) => {
-  const session = await getSessionFromRequest(req);
-  if (!session || session.role !== "admin") {
-    return res.status(403).json({ error: "Access denied. Administrator privileges required." });
-  }
+  try {
+    const session = await getSessionFromRequest(req);
 
-  res.json({
-    students: dataStore.students,
-    companies: dataStore.companies,
-    stats: {
-      totalStudents: dataStore.students.length,
-      totalCompanies: dataStore.companies.length,
-      totalInternships: dataStore.internships.length,
-      totalApplications: dataStore.applications.length
+    if (!session || session.role !== "admin") {
+      return res.status(403).json({
+        error: "Access denied. Administrator privileges required."
+      });
     }
-  });
+
+    // Fetch students from Supabase
+    const { data: students, error: studentsError } = await supabase
+      .from("students")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (studentsError) {
+      console.error("Failed to fetch students:", studentsError);
+      return res.status(500).json({
+        error: "Failed to fetch students"
+      });
+    }
+
+    // Fetch student profiles
+    const studentIds = (students || []).map(student => student.id);
+
+    let studentProfiles: any[] = [];
+
+    if (studentIds.length > 0) {
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, name, email, avatar_url, phone, location")
+        .in("id", studentIds);
+
+      if (profilesError) {
+        console.error("Failed to fetch student profiles:", profilesError);
+        return res.status(500).json({
+          error: "Failed to fetch student profiles"
+        });
+      }
+
+      studentProfiles = profiles || [];
+    }
+
+    const studentProfileMap = new Map(
+      studentProfiles.map(profile => [profile.id, profile])
+    );
+
+    const formattedStudents = (students || []).map(student => {
+      const profile = studentProfileMap.get(student.id);
+
+      return {
+        id: student.id,
+        name: profile?.name || "",
+        email: profile?.email || "",
+        photo: profile?.avatar_url || "",
+        phone: profile?.phone || "",
+        location: profile?.location || "",
+        studentId: student.student_id || "",
+        department: student.department || "",
+        cgpa: student.cgpa ?? null,
+        semester: student.semester || "",
+        university: student.university || "",
+        graduationYear: student.graduation_year || "",
+        resumeUrl: student.resume_url || "",
+        resumeName: student.resume_name || "",
+        bio: student.bio || "",
+        skills: student.skills || [],
+        languages: student.languages || [],
+        status: student.status || "active",
+        createdAt: student.created_at,
+        updatedAt: student.updated_at
+      };
+    });
+
+    // Fetch companies from Supabase
+    const { data: companies, error: companiesError } = await supabase
+      .from("companies")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (companiesError) {
+      console.error("Failed to fetch companies:", companiesError);
+      return res.status(500).json({
+        error: "Failed to fetch companies"
+      });
+    }
+
+    const formattedCompanies = (companies || []).map(company => ({
+      id: company.id,
+      name: company.name || "",
+      tagline: company.tagline || "",
+      industry: company.industry || "",
+      companySize: company.company_size || "",
+      website: company.website || "",
+      phone: company.phone || "",
+      location: company.location || "",
+      logo: company.logo_url || "",
+      logoUrl: company.logo_url || "",
+      coverImage: company.cover_image_url || "",
+      hrName: company.hr_name || "",
+      hrEmail: company.hr_email || "",
+      hrPhone: company.hr_phone || "",
+      founded: company.founded || "",
+      verified: company.verified || false,
+      status: company.status || "pending",
+      description: company.description || "",
+      linkedinUrl: company.linkedin_url || "",
+      facebookUrl: company.facebook_url || "",
+      createdAt: company.created_at,
+      updatedAt: company.updated_at
+    }));
+
+    // Get real internship count
+    const { count: internshipCount, error: internshipError } = await supabase
+      .from("internships")
+      .select("*", { count: "exact", head: true });
+
+    if (internshipError) {
+      console.error("Failed to count internships:", internshipError);
+    }
+
+    // Get real application count
+    const { count: applicationCount, error: applicationError } = await supabase
+      .from("applications")
+      .select("*", { count: "exact", head: true });
+
+    if (applicationError) {
+      console.error("Failed to count applications:", applicationError);
+    }
+
+    return res.json({
+      students: formattedStudents,
+      companies: formattedCompanies,
+      stats: {
+        totalStudents: formattedStudents.length,
+        totalCompanies: formattedCompanies.length,
+        totalInternships: internshipCount || 0,
+        totalApplications: applicationCount || 0
+      }
+    });
+
+  } catch (error) {
+    console.error("Admin users API error:", error);
+
+    return res.status(500).json({
+      error: "Failed to fetch admin user data"
+    });
+  }
 });
 
 app.patch("/api/admin/users/:role/:id/status", async (req: Request, res: Response) => {
@@ -3139,19 +3272,42 @@ if (role === "student") {
     user: updatedStudent
   });
 }
- else if (role === "company") {
-    const company = dataStore.companies.find(c => c.id === id);
-    if (!company) return res.status(404).json({ error: "Company not found" });
-    company.status = status;
-    if (status === "active") company.verified = true;
-    logAuditEvent("USER_STATUS_CHANGE", `Admin changed company ${company.name} status to ${status}`, req, {
-      role: "admin",
-      status: "warning"
+else if (role === "company") {
+  const normalizedStatus = status === "suspended" ? "suspended" : "active";
+
+  const { data: company, error: companyError } = await supabase
+    .from("companies")
+    .update({
+      status: normalizedStatus,
+      verified: normalizedStatus === "active",
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (companyError || !company) {
+    console.error("Failed to update company status:", companyError);
+    return res.status(500).json({
+      error: "Failed to update company status"
     });
-    saveDatabase();
-    return res.json({ success: true, user: company });
   }
 
+  logAuditEvent(
+    "COMPANY_STATUS_UPDATED",
+    `Admin updated company ${company.name} status to ${normalizedStatus}`,
+    req,
+    {
+      role: "admin",
+      status: "success"
+    }
+  );
+
+  return res.json({
+    success: true,
+    user: company
+  });
+}
   return res.status(400).json({ error: "Invalid user role specified" });
 });
 
