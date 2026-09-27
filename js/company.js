@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // My Internships Management
-  if (document.getElementById('my-internships-container')) {
+  if (document.getElementById('company-my-internships-container')) {
     initMyInternships();
   }
 
@@ -325,89 +325,233 @@ async function saveAndPublishInternship(isDraft = false) {
  * Initialize My Internships List
  */
 async function initMyInternships() {
-  const container = document.getElementById('my-internships-container');
+  const container = document.getElementById('company-my-internships-container');
   if (!container) return;
 
   container.innerHTML = `
     <div class="py-16 text-center">
       <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-600 mb-3"></i>
-      <p class="text-slate-500 font-medium text-sm">Loading your live postings from database...</p>
+      <p class="text-slate-500 font-medium text-sm">
+        Loading your live postings from database...
+      </p>
     </div>
   `;
 
-  const company = DB.getCompanyProfile();
-  const [internships, applicants] = await Promise.all([
-    DB.fetchInternships({ company: company.name }),
-    DB.fetchApplications({ companyId: company.id, company: company.name })
-  ]);
+  try {
+    const company = DB.getCompanyProfile();
 
-  const list = internships.filter(i => i.companyId === company.id || i.company === company.name);
+    if (!company || !company.id) {
+      throw new Error('Company profile not found. Please login again.');
+    }
 
-  const countBadge = document.getElementById('my-internships-count');
-  if (countBadge) countBadge.textContent = `${list.length} Internships Posted`;
+    // Fetch ALL live internships directly from backend
+    const internships = await DB.fetchInternships();
 
-  if (list.length === 0) {
+    // Fetch company applications
+    const applicants = await DB.fetchApplications({
+      companyId: company.id,
+      company: company.name
+    });
+
+    // Match internships using the REAL Supabase company ID first.
+    // Company name is kept as a compatibility fallback.
+    const list = internships.filter(item =>
+      String(item.companyId) === String(company.id) ||
+      (
+        item.company &&
+        company.name &&
+        item.company.toLowerCase() === company.name.toLowerCase()
+      )
+    );
+
+    const countBadge = document.getElementById('my-internships-count');
+
+    if (countBadge) {
+      countBadge.textContent = `${list.length} Internships Posted`;
+    }
+
+    if (list.length === 0) {
+      container.innerHTML = `
+        <div class="py-16 text-center bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-8">
+          <div class="w-16 h-16 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+            <i class="fa-solid fa-briefcase"></i>
+          </div>
+
+          <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-2">
+            No Internships Posted Yet
+          </h3>
+
+          <p class="text-slate-500 dark:text-slate-400 text-sm max-w-md mx-auto mb-6">
+            Create your first internship posting to start receiving verified student applications in real time.
+          </p>
+
+          <a href="post-internship.html"
+             class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition shadow-md shadow-indigo-600/20">
+            <i class="fa-solid fa-plus"></i>
+            Post an Internship
+          </a>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = list.map(item => {
+
+      const jobApplicants = applicants.filter(app =>
+        String(app.internshipId) === String(item.id) ||
+        app.jobTitle === item.title
+      );
+
+      const status = item.status || 'active';
+
+      const isClosed =
+        status.toLowerCase() === 'closed' ||
+        (
+          item.deadline &&
+          new Date(item.deadline) < new Date()
+        );
+
+      return `
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 hover-card-lift shadow-sm mb-4">
+
+          <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+
+            <div>
+
+              <div class="flex items-center gap-3 flex-wrap">
+
+                <h3 class="font-bold text-lg text-slate-900 dark:text-white hover:text-indigo-600">
+                  <a href="internship-details.html?id=${item.id}">
+                    ${item.title}
+                  </a>
+                </h3>
+
+                <span class="px-2.5 py-0.5 text-xs font-bold rounded-full
+                  ${isClosed
+                    ? 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/50 dark:text-rose-400'
+                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400'
+                  }">
+
+                  ${isClosed ? 'Closed' : 'Active'}
+
+                </span>
+
+              </div>
+
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-3 flex-wrap">
+
+                <span>
+                  <i class="fa-regular fa-folder text-indigo-500 mr-1"></i>
+                  ${item.category || 'Software & Development'}
+                </span>
+
+                <span>•</span>
+
+                <span>
+                  <i class="fa-solid fa-location-dot text-rose-500 mr-1"></i>
+                  ${item.location || 'Dhaka, Bangladesh'}
+                  (${item.workMode || 'Hybrid'})
+                </span>
+
+                <span>•</span>
+
+                <span>
+                  <i class="fa-regular fa-clock text-purple-500 mr-1"></i>
+                  Deadline: ${item.deadline || 'Ongoing'}
+                </span>
+
+              </p>
+
+              <div class="flex items-center gap-6 mt-3 text-xs font-semibold text-slate-600 dark:text-slate-300 flex-wrap">
+
+                <span class="flex items-center gap-1.5">
+                  <i class="fa-solid fa-users text-indigo-500"></i>
+                  ${jobApplicants.length} Total Applicants
+                </span>
+
+                <span class="flex items-center gap-1.5">
+                  <i class="fa-solid fa-user-check text-emerald-500"></i>
+                  ${jobApplicants.filter(a => a.status === 'Shortlisted').length}
+                  Shortlisted
+                </span>
+
+                <span class="flex items-center gap-1.5">
+                  <i class="fa-solid fa-sack-dollar text-amber-500"></i>
+                  ${item.stipend || 'Not specified'}
+                </span>
+
+              </div>
+
+            </div>
+
+            <!-- Actions -->
+
+            <div class="flex items-center gap-2.5 w-full lg:w-auto justify-end pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-100 dark:border-slate-700">
+
+              <a href="applicants.html?internshipId=${item.id}"
+                 class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+
+                <i class="fa-solid fa-users"></i>
+
+                Applicants (${jobApplicants.length})
+
+              </a>
+
+              <a href="internship-details.html?id=${item.id}"
+                 class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition">
+
+                View
+
+              </a>
+
+              <button
+                onclick="handleDeleteInternship('${item.id}')"
+                class="px-3 py-2 rounded-xl border border-rose-200 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 hover:bg-rose-50 text-xs font-semibold transition"
+                title="Delete Post">
+
+                <i class="fa-regular fa-trash-can"></i>
+
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+      `;
+    }).join('');
+
+  } catch (error) {
+
+    console.error('Failed to load company internships:', error);
+
     container.innerHTML = `
-      <div class="py-16 text-center bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-8">
-        <div class="w-16 h-16 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
-          <i class="fa-solid fa-briefcase"></i>
+      <div class="py-16 text-center bg-white dark:bg-slate-800 rounded-2xl border border-rose-200 dark:border-rose-900/50 p-8">
+
+        <div class="w-16 h-16 bg-rose-50 dark:bg-rose-950/50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+          <i class="fa-solid fa-triangle-exclamation"></i>
         </div>
-        <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-2">No Internships Posted Yet</h3>
-        <p class="text-slate-500 dark:text-slate-400 text-sm max-w-md mx-auto mb-6">Create your first internship posting to start receiving verified student applications in real time.</p>
-        <a href="post-internship.html" class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition shadow-md shadow-indigo-600/20">
-          <i class="fa-solid fa-plus"></i> Post an Internship
-        </a>
+
+        <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-2">
+          Failed to Load Internships
+        </h3>
+
+        <p class="text-slate-500 dark:text-slate-400 text-sm max-w-md mx-auto mb-6">
+          ${error.message || 'Unable to load your internships from the database.'}
+        </p>
+
+        <button
+          onclick="initMyInternships()"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition">
+
+          <i class="fa-solid fa-rotate-right"></i>
+          Try Again
+
+        </button>
+
       </div>
     `;
-    return;
   }
-
-  container.innerHTML = list.map(item => {
-    const jobApplicants = applicants.filter(a => a.jobTitle === item.title || a.internshipId === item.id);
-    return `
-      <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 hover-card-lift shadow-sm mb-4">
-        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div>
-            <div class="flex items-center gap-3 flex-wrap">
-              <h3 class="font-bold text-lg text-slate-900 dark:text-white hover:text-indigo-600">
-                <a href="internship-details.html?id=${item.id}">${item.title}</a>
-              </h3>
-              <span class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400">
-                Active
-              </span>
-            </div>
-
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-3">
-              <span><i class="fa-regular fa-folder text-indigo-500 mr-1"></i>${item.category}</span>
-              <span>•</span>
-              <span><i class="fa-solid fa-location-dot text-rose-500 mr-1"></i>${item.location} (${item.workMode})</span>
-              <span>•</span>
-              <span><i class="fa-regular fa-clock text-purple-500 mr-1"></i>Deadline: ${item.deadline || 'Ongoing'}</span>
-            </p>
-
-            <div class="flex items-center gap-6 mt-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
-              <span class="flex items-center gap-1.5"><i class="fa-solid fa-users text-indigo-500"></i> ${jobApplicants.length} Total Applicants</span>
-              <span class="flex items-center gap-1.5"><i class="fa-solid fa-user-check text-emerald-500"></i> ${jobApplicants.filter(a => a.status === 'Shortlisted').length} Shortlisted</span>
-              <span class="flex items-center gap-1.5"><i class="fa-solid fa-sack-dollar text-amber-500"></i> ${item.stipend}</span>
-            </div>
-          </div>
-
-          <!-- Actions -->
-          <div class="flex items-center gap-2.5 w-full lg:w-auto justify-end pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-100 dark:border-slate-700">
-            <a href="applicants.html?internshipId=${item.id}" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
-              <i class="fa-solid fa-users"></i> Applicants (${jobApplicants.length})
-            </a>
-            <a href="internship-details.html?id=${item.id}" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition">
-              View
-            </a>
-            <button onclick="handleDeleteInternship('${item.id}')" class="px-3 py-2 rounded-xl border border-rose-200 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 hover:bg-rose-50 text-xs font-semibold transition" title="Delete Post">
-              <i class="fa-regular fa-trash-can"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
 }
 
 async function handleDeleteInternship(id) {
