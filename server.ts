@@ -1393,24 +1393,74 @@ app.put("/api/companies/:id", (req: Request, res: Response) => {
   res.json({ success: true, company: comp });
 });
 
+
 // Students API (Placement Directory for Admin & Authenticated Users)
 app.get("/api/students", async (req: Request, res: Response) => {
   try {
-    const { data: students, error } = await supabase
+    const { data: students, error: studentsError } = await supabase
       .from("students")
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Failed to fetch students from Supabase:", error);
+    if (studentsError) {
+      console.error("Failed to fetch students from Supabase:", studentsError);
       return res.status(500).json({
         error: "Failed to fetch students"
       });
     }
 
-    res.json(students || []);
+    if (!students || students.length === 0) {
+      return res.json([]);
+    }
+
+    const studentIds = students.map(student => student.id);
+
+    const { data: profiles, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id, name, email, avatar_url")
+      .in("id", studentIds);
+
+    if (profilesError) {
+      console.error("Failed to fetch student profiles:", profilesError);
+      return res.status(500).json({
+        error: "Failed to fetch student profiles"
+      });
+    }
+
+    const profileMap = new Map(
+      (profiles || []).map(profile => [profile.id, profile])
+    );
+
+    const combinedStudents = students.map(student => {
+      const profile = profileMap.get(student.id);
+
+      return {
+        id: student.id,
+        name: profile?.name || "",
+        email: profile?.email || "",
+        photo: profile?.avatar_url || "",
+        studentId: student.student_id || "",
+        department: student.department || "",
+        cgpa: student.cgpa ?? null,
+        semester: student.semester || "",
+        university: student.university || "",
+        graduationYear: student.graduation_year || "",
+        resumeUrl: student.resume_url || "",
+        resumeName: student.resume_name || "",
+        bio: student.bio || "",
+        skills: student.skills || [],
+        languages: student.languages || [],
+        status: student.status || "active",
+        createdAt: student.created_at,
+        updatedAt: student.updated_at
+      };
+    });
+
+    res.json(combinedStudents);
+
   } catch (error) {
     console.error("Students API error:", error);
+
     res.status(500).json({
       error: "Failed to fetch students"
     });
