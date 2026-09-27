@@ -189,7 +189,7 @@ async function submitInternshipApplication(e) {
   }
 }
 
-//**
+/**
  * Student Applications - Supabase
  */
 let currentAppFilter = 'All';

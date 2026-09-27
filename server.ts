@@ -1535,8 +1535,8 @@ app.post("/api/applications", async (req: Request, res: Response) => {
         internship.title ||
         "",
 
-      company:
-        internship.company_name ||
+      company_name: 
+        internship.company_name || 
         "",
 
       company_logo:
