@@ -86,12 +86,16 @@ const AdminApp = {
   },
 
   async updateUserStatus(role, id, status) {
-    try {
-      const res = await fetch(`/api/admin/users/${role}/${id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
+   try {
+const token = localStorage.getItem('imp_token');
+  const res = await fetch(`/api/admin/users/${role}/${id}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ status })
+  });
       if (res.ok) {
         showToast(`User account status updated to ${status}.`, 'success');
         return true;
