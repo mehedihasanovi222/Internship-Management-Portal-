@@ -1164,38 +1164,57 @@ const DB = {
   },
 
   // Apply for internship
-  async applyForInternship(applicationData) {
-    const alreadyApplied = await this.hasApplied(applicationData.internshipId, applicationData.studentId);
-    if (alreadyApplied) {
-      return { error: 'You have already submitted an application for this internship position.' };
-    }
+async applyForInternship(internshipId, applicationData = {}) {
+  const auth = this.getAuth();
+  const student = this.getStudentProfile();
 
-    try {
-      const res = await fetch('/api/applications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(applicationData)
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        return { error: data.error || 'Failed to submit application.' };
-      }
+  const payload = {
+    internshipId,
+    studentId: student.id,
+    studentEmail: student.email,
+    studentName: student.name,
+    studentPhone: student.phone,
+    studentUniversity: student.university,
+    studentDepartment: student.department,
+    studentCgpa: student.cgpa,
+    studentPhoto: student.avatar,
 
-      const apps = this.getApplications();
-      apps.unshift(data.application || applicationData);
-      this.saveApplications(apps);
+    resumeName: applicationData.resumeName || student.resume?.fileName || "",
+    resumeUrl: applicationData.resumeUrl || student.resume?.url || "",
 
-      return { success: true, application: data.application };
-    } catch (err) {
-      applicationData.id = 'app-' + Date.now();
-      applicationData.appliedDate = new Date().toISOString().split('T')[0];
-      applicationData.status = 'Applied';
-      const apps = this.getApplications();
-      apps.unshift(applicationData);
-      this.saveApplications(apps);
-      return { success: true, application: applicationData };
-    }
-  },
+    coverLetter: applicationData.coverLetter || "",
+    availability: applicationData.availability || "",
+
+    portfolioUrl: applicationData.portfolioUrl || student.socials?.portfolio || "",
+    githubUrl: student.socials?.github || ""
+  };
+
+  const headers = {
+    "Content-Type": "application/json"
+  };
+
+  if (auth && auth.token) {
+    headers["Authorization"] = `Bearer ${auth.token}`;
+  }
+
+  const res = await fetch("/api/applications", {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.error || "Failed to submit application.");
+  }
+
+  const currentApps = this.getApplications();
+  currentApps.unshift(data.application);
+  this.saveApplications(currentApps);
+
+  return data;
+},
 
   // Update Application Status (Shortlist, Interview, Select, Reject)
   async updateApplicationStatus(applicationId, newStatus, note = '') {
