@@ -1032,78 +1032,177 @@ app.get("/api/internships/:id", async (req: Request, res: Response) => {
 });
 
 
-app.post("/api/internships", (req: Request, res: Response) => {
-  const session = getSessionFromRequest(req);
-  if (!session) {
-    return res.status(401).json({ error: "Authentication required. Please sign in to post internships." });
-  }
-  if (session.role !== "company" && session.role !== "admin") {
-    return res.status(403).json({ error: "Access denied. Only registered companies or administrators can post internships." });
-  }
+app.post("/api/internships", async (req: Request, res: Response) => {
+  try {
+    const session = await getSessionFromRequest(req);
 
-  // Verify company identity
-  let existingCompany: Company | undefined;
-  if (session.role === "company") {
-    existingCompany = dataStore.companies.find(c => c.id === session.userId || c.email.toLowerCase() === session.email.toLowerCase());
-  } else {
-    const companyId = req.body.companyId;
-    const companyEmail = req.body.companyEmail || req.body.email;
-    existingCompany = dataStore.companies.find(c => 
-      (companyId && c.id === companyId) ||
-      (companyEmail && c.email.toLowerCase() === companyEmail.toLowerCase())
+    if (!session) {
+      return res.status(401).json({
+        error: "Authentication required. Please sign in to post internships."
+      });
+    }
+
+    if (session.role !== "company" && session.role !== "admin") {
+      return res.status(403).json({
+        error:
+          "Access denied. Only registered companies or administrators can post internships."
+      });
+    }
+
+    let company: any = null;
+
+    // Get the real company from Supabase
+    if (session.role === "company") {
+      const { data: companyData, error: companyError } = await supabase
+        .from("companies")
+        .select("*")
+        .eq("id", session.userId)
+        .single();
+
+      if (companyError || !companyData) {
+        return res.status(404).json({
+          error: "Company profile not found."
+        });
+      }
+
+      company = companyData;
+    } else {
+      const companyId = req.body.companyId;
+
+      if (companyId) {
+        const { data: companyData } = await supabase
+          .from("companies")
+          .select("*")
+          .eq("id", companyId)
+          .single();
+
+        company = companyData;
+      }
+    }
+
+    // Company must be approved before posting
+    if (company && (company.verified === false || company.status !== "active")) {
+      return res.status(403).json({
+        error:
+          "Your company account is pending administrative verification. Once approved by the Central Placement Cell, you will be authorized to post internships."
+      });
+    }
+
+    const finalCompanyId = company
+      ? company.id
+      : session.userId;
+
+    const finalCompanyName = company
+      ? company.name
+      : session.name;
+
+    const finalLogo = company?.logo_url || req.body.logo || "";
+
+    const internshipData = {
+      id: "int-" + Date.now(),
+
+      company_id: finalCompanyId,
+
+      title: req.body.title || "Untitled Internship",
+
+      company_name: finalCompanyName,
+
+      company_logo: finalLogo,
+
+      category: req.body.category || "Software & Development",
+
+      department: req.body.department || "Engineering",
+
+      location: req.body.location || "Dhaka, Bangladesh",
+
+      work_mode: req.body.workMode || "Hybrid",
+
+      type: req.body.type || "Full-time",
+
+      duration: req.body.duration || "3 Months",
+
+      stipend: req.body.stipend || "৳ 25,000 / month",
+
+      stipend_amount: Number(req.body.stipendAmount) || 0,
+
+      openings: Number(req.body.openings) || 1,
+
+      posted_date: new Date().toISOString().split("T")[0],
+
+      deadline: req.body.deadline || null,
+
+      skills: Array.isArray(req.body.skills)
+        ? req.body.skills
+        : [],
+
+      featured: Boolean(req.body.featured),
+
+      status: "active",
+
+      description: req.body.description || "",
+
+      responsibilities: Array.isArray(req.body.responsibilities)
+        ? req.body.responsibilities
+        : [],
+
+      qualifications: Array.isArray(req.body.qualifications)
+        ? req.body.qualifications
+        : [],
+
+      preferred_skills: Array.isArray(req.body.preferredSkills)
+        ? req.body.preferredSkills
+        : [],
+
+      benefits: Array.isArray(req.body.benefits)
+        ? req.body.benefits
+        : [],
+
+      company_info: req.body.companyInfo || {
+        name: finalCompanyName,
+        location: req.body.location || "Dhaka, Bangladesh"
+      }
+    };
+
+    const { data: internship, error } = await supabase
+      .from("internships")
+      .insert(internshipData)
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("Failed to create internship:", error);
+
+      return res.status(500).json({
+        error: "Failed to create internship.",
+        details: error.message
+      });
+    }
+
+    logAuditEvent(
+      "INTERNSHIP_CREATED",
+      `Internship posted: "${internship.title}" by ${finalCompanyName}`,
+      req,
+      {
+        email: session.email,
+        role: session.role,
+        userId: session.userId,
+        status: "success"
+      }
     );
-  }
 
-  // If company account exists and is unverified/pending, prevent posting
-  if (existingCompany && existingCompany.verified === false) {
-    return res.status(403).json({
-      error: "Your company account is pending administrative verification. Once approved by the Central Placement Cell, you will be authorized to post internships."
+    return res.status(201).json({
+      success: true,
+      internship
+    });
+
+  } catch (error) {
+    console.error("Create internship error:", error);
+
+    return res.status(500).json({
+      error: "Failed to create internship."
     });
   }
-
-  const finalCompanyId = existingCompany ? existingCompany.id : (session.role === "company" ? session.userId : (req.body.companyId || "comp-" + Date.now()));
-  const finalCompanyName = existingCompany ? existingCompany.name : (session.role === "company" ? session.name : (req.body.company || "TechNova Solutions"));
-  const finalLogo = (existingCompany && existingCompany.logo) ? existingCompany.logo : (req.body.logo || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80");
-
-  const newPost: Internship = {
-    id: "int-" + Date.now(),
-    companyId: finalCompanyId,
-    title: req.body.title || "Untitled Internship",
-    company: finalCompanyName,
-    logo: finalLogo,
-    category: req.body.category || "Software & Development",
-    department: req.body.department || "Engineering",
-    location: req.body.location || "Dhaka, Bangladesh",
-    workMode: req.body.workMode || "Hybrid",
-    type: req.body.type || "Full-time",
-    duration: req.body.duration || "3 Months",
-    stipend: req.body.stipend || "৳ 25,000 / month",
-    stipendAmount: Number(req.body.stipendAmount) || 25000,
-    openings: Number(req.body.openings) || 2,
-    postedDate: new Date().toISOString().split("T")[0],
-    deadline: req.body.deadline || "2026-10-30",
-    skills: Array.isArray(req.body.skills) ? req.body.skills : ["React", "JavaScript"],
-    featured: Boolean(req.body.featured),
-    status: "active",
-    description: req.body.description || "",
-    responsibilities: req.body.responsibilities || [],
-    qualifications: req.body.qualifications || [],
-    preferredSkills: req.body.preferredSkills || [],
-    benefits: req.body.benefits || [],
-    companyInfo: req.body.companyInfo || { name: finalCompanyName, location: req.body.location || "Dhaka, Bangladesh" }
-  };
-
-  dataStore.internships.unshift(newPost);
-  logAuditEvent("INTERNSHIP_CREATED", `Internship posted: "${newPost.title}" by ${finalCompanyName}`, req, {
-    email: session.email,
-    role: session.role,
-    userId: session.userId,
-    status: "success"
-  });
-  saveDatabase();
-  res.status(201).json({ success: true, internship: newPost });
 });
-
 app.put("/api/internships/:id", (req: Request, res: Response) => {
   const session = getSessionFromRequest(req);
   if (!session || (session.role !== "company" && session.role !== "admin")) {
