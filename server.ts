@@ -1394,12 +1394,28 @@ app.put("/api/companies/:id", (req: Request, res: Response) => {
 });
 
 // Students API (Placement Directory for Admin & Authenticated Users)
-app.get("/api/students", (req: Request, res: Response) => {
-  // Strip sensitive fields (passwords) from output
-  const safeStudents = dataStore.students.map(({ password, ...rest }) => rest);
-  res.json(safeStudents);
-});
+app.get("/api/students", async (req: Request, res: Response) => {
+  try {
+    const { data: students, error } = await supabase
+      .from("students")
+      .select("*")
+      .order("created_at", { ascending: false });
 
+    if (error) {
+      console.error("Failed to fetch students from Supabase:", error);
+      return res.status(500).json({
+        error: "Failed to fetch students"
+      });
+    }
+
+    res.json(students || []);
+  } catch (error) {
+    console.error("Students API error:", error);
+    res.status(500).json({
+      error: "Failed to fetch students"
+    });
+  }
+});
 app.get("/api/students/:id", (req: Request, res: Response) => {
   const student = dataStore.students.find(s => s.id === req.params.id || s.email.toLowerCase() === req.params.id.toLowerCase());
   if (!student) {
