@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupApplyModal();
 
   // Student Applications List page
+  console.log('STUDENT APPLICATION PAGE DETECTED');
   if (document.getElementById('student-applications-container')) {
     initStudentApplications();
   }

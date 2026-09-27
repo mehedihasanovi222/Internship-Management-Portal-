@@ -1098,70 +1098,65 @@ app.post("/api/internships", async (req: Request, res: Response) => {
 
     const finalLogo = company?.logo_url || req.body.logo || "";
 
-    const internshipData = {
-      id: "int-" + Date.now(),
+ const internshipData = {
+  company_id: finalCompanyId,
 
-      company_id: finalCompanyId,
+  title: req.body.title || "Untitled Internship",
 
-      title: req.body.title || "Untitled Internship",
+  company_name: finalCompanyName,
 
-      company_name: finalCompanyName,
+  company_logo: finalLogo,
 
-      company_logo: finalLogo,
+  category: req.body.category || "Software & Development",
 
-      category: req.body.category || "Software & Development",
+  department: req.body.department || "Engineering",
 
-      department: req.body.department || "Engineering",
+  location: req.body.location || "Dhaka, Bangladesh",
 
-      location: req.body.location || "Dhaka, Bangladesh",
+  work_mode: req.body.workMode || "Hybrid",
 
-      work_mode: req.body.workMode || "Hybrid",
+  internship_type: req.body.type || "Full-time",
 
-      type: req.body.type || "Full-time",
+  duration: req.body.duration || "3 Months",
 
-      duration: req.body.duration || "3 Months",
+  stipend: req.body.stipend || "৳ 25,000 / month",
 
-      stipend: req.body.stipend || "৳ 25,000 / month",
+  stipend_amount: Number(req.body.stipendAmount) || 0,
 
-      stipend_amount: Number(req.body.stipendAmount) || 0,
+  openings: Number(req.body.openings) || 1,
 
-      openings: Number(req.body.openings) || 1,
+  posted_date: new Date().toISOString().split("T")[0],
 
-      posted_date: new Date().toISOString().split("T")[0],
+  deadline: req.body.deadline || null,
 
-      deadline: req.body.deadline || null,
+  start_date: req.body.startDate || null,
 
-      skills: Array.isArray(req.body.skills)
-        ? req.body.skills
-        : [],
+  skills: Array.isArray(req.body.skills)
+    ? req.body.skills
+    : [],
 
-      featured: Boolean(req.body.featured),
+  preferred_skills: Array.isArray(req.body.preferredSkills)
+    ? req.body.preferredSkills
+    : [],
 
-      status: "active",
+  responsibilities: Array.isArray(req.body.responsibilities)
+    ? req.body.responsibilities
+    : [],
 
-      description: req.body.description || "",
+  qualifications: Array.isArray(req.body.qualifications)
+    ? req.body.qualifications
+    : [],
 
-      responsibilities: Array.isArray(req.body.responsibilities)
-        ? req.body.responsibilities
-        : [],
+  benefits: Array.isArray(req.body.benefits)
+    ? req.body.benefits
+    : [],
 
-      qualifications: Array.isArray(req.body.qualifications)
-        ? req.body.qualifications
-        : [],
+  description: req.body.description || "",
 
-      preferred_skills: Array.isArray(req.body.preferredSkills)
-        ? req.body.preferredSkills
-        : [],
+  featured: Boolean(req.body.featured),
 
-      benefits: Array.isArray(req.body.benefits)
-        ? req.body.benefits
-        : [],
-
-      company_info: req.body.companyInfo || {
-        name: finalCompanyName,
-        location: req.body.location || "Dhaka, Bangladesh"
-      }
-    };
+  status: "active"
+};
 
     const { data: internship, error } = await supabase
       .from("internships")
