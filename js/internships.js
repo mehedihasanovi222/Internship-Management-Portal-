@@ -387,242 +387,929 @@ function handleToggleSave(id, btnElement) {
 /**
  * Initialize Single Internship Details Page
  */
+/**
+ * Initialize Single Internship Details Page
+ */
 async function initInternshipDetails() {
-  const container = document.getElementById('internship-details-container') || document.getElementById('internship-detail-container');
+  const container =
+    document.getElementById('internship-details-container') ||
+    document.getElementById('internship-detail-container');
+
   if (!container) return;
 
-  const id = getQueryParam('id') || 'int-101';
-  let item = DB.getInternshipById(id);
+  const id = getQueryParam('id');
 
-  if (!item) {
-    try {
-      const res = await fetch(`/api/internships/${id}`);
-      if (res.ok) {
-        item = await res.json();
-      }
-    } catch (e) {
-      console.warn('Could not fetch single internship from API:', e);
-    }
-  }
-
-  if (!item) {
-    const list = DB.getInternships();
-    item = list.find(i => i.id === id) || list[0];
-  }
-
-  if (!item) {
+  if (!id) {
     container.innerHTML = `
       <div class="p-8 text-center bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
-        <p class="text-sm text-slate-500 mb-4">Internship opportunity not found or has expired.</p>
-        <a href="internships.html" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold">View All Internships</a>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
+          No internship was selected.
+        </p>
+        <a
+          href="internships.html"
+          class="inline-flex px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold"
+        >
+          View All Internships
+        </a>
       </div>
     `;
     return;
   }
 
-  const isSaved = DB.isInternshipSaved(item.id);
-  const isStudentPortal = window.location.pathname.includes('/student/');
-
-  // Render main detail view
+  // Show loading state while fetching the real internship
   container.innerHTML = `
-    <!-- Top Hero Card -->
-    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 md:p-8 mb-8 shadow-sm">
-      <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div class="flex items-center gap-5">
-          <img src="${item.logo}" alt="${item.company}" class="w-20 h-20 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow-md" />
-          <div>
-            <div class="flex items-center gap-2.5 flex-wrap">
-              <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">${item.title}</h1>
-              <span class="px-3 py-0.5 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400">
-                Active
-              </span>
-            </div>
-            <p class="text-base font-semibold text-slate-600 dark:text-slate-300 mt-1 flex items-center gap-2">
-              <i class="fa-regular fa-building text-indigo-500"></i> ${item.company} 
-              <span class="text-slate-300 dark:text-slate-600">•</span>
-              <span class="text-sm font-normal text-slate-500 dark:text-slate-400"><i class="fa-solid fa-location-dot text-rose-500 text-xs mr-1"></i>${item.location} (${item.workMode})</span>
-            </p>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-3 w-full md:w-auto">
-          <button onclick="handleToggleSave('${item.id}', this)" class="flex-1 md:flex-initial px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition flex items-center justify-center gap-2 ${isSaved ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200' : ''}">
-            <i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i>
-            <span>${isSaved ? 'Saved' : 'Save'}</span>
-          </button>
-          
-          <button onclick="openApplyModal('${item.id}')" class="flex-1 md:flex-initial px-7 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-md shadow-indigo-600/20 transition flex items-center justify-center gap-2">
-            <i class="fa-regular fa-paper-plane"></i>
-            <span>Apply Now</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Quick Metrics Grid -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 pt-8 border-t border-slate-100 dark:border-slate-700/60">
-        <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700">
-          <span class="text-xs text-slate-500 dark:text-slate-400 font-medium block">Monthly Stipend</span>
-          <span class="text-lg font-bold text-indigo-600 dark:text-indigo-400">${item.stipend}</span>
-        </div>
-        <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700">
-          <span class="text-xs text-slate-500 dark:text-slate-400 font-medium block">Duration</span>
-          <span class="text-lg font-bold text-slate-900 dark:text-white">${item.duration}</span>
-        </div>
-        <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700">
-          <span class="text-xs text-slate-500 dark:text-slate-400 font-medium block">Openings</span>
-          <span class="text-lg font-bold text-slate-900 dark:text-white">${item.openings} Vacancies</span>
-        </div>
-        <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700">
-          <span class="text-xs text-slate-500 dark:text-slate-400 font-medium block">Apply Before</span>
-          <span class="text-lg font-bold text-rose-600 dark:text-rose-400">${item.deadline}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 2-Column Main Content & Company Sidebar -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <!-- Left 2 Cols: Job Details -->
-      <div class="lg:col-span-2 space-y-8">
-        <!-- Overview -->
-        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 md:p-8 shadow-sm">
-          <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-align-left text-indigo-500"></i> Role Description
-          </h2>
-          <p class="text-slate-600 dark:text-slate-300 leading-relaxed">
-            ${item.description}
-          </p>
-
-          <!-- Key Responsibilities -->
-          <h3 class="text-lg font-bold text-slate-900 dark:text-white mt-6 mb-3">Key Responsibilities</h3>
-          <ul class="space-y-2.5">
-            ${item.responsibilities.map(r => `
-              <li class="flex items-start gap-3 text-slate-600 dark:text-slate-300 text-sm">
-                <i class="fa-solid fa-check text-emerald-500 mt-1"></i>
-                <span>${r}</span>
-              </li>
-            `).join('')}
-          </ul>
-
-          <!-- Qualifications -->
-          <h3 class="text-lg font-bold text-slate-900 dark:text-white mt-6 mb-3">Qualifications & Requirements</h3>
-          <ul class="space-y-2.5">
-            ${item.qualifications.map(q => `
-              <li class="flex items-start gap-3 text-slate-600 dark:text-slate-300 text-sm">
-                <i class="fa-regular fa-circle-dot text-indigo-500 mt-1"></i>
-                <span>${q}</span>
-              </li>
-            `).join('')}
-          </ul>
-
-          <!-- Skills Needed -->
-          <h3 class="text-lg font-bold text-slate-900 dark:text-white mt-6 mb-3">Required & Preferred Skills</h3>
-          <div class="flex flex-wrap gap-2">
-            ${item.skills.map(s => `
-              <span class="px-3 py-1.5 text-sm font-medium bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 rounded-xl border border-indigo-200 dark:border-indigo-800">
-                ${s}
-              </span>
-            `).join('')}
-            ${item.preferredSkills.map(ps => `
-              <span class="px-3 py-1.5 text-sm font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl">
-                ${ps} (Preferred)
-              </span>
-            `).join('')}
-          </div>
-
-          <!-- Benefits -->
-          <h3 class="text-lg font-bold text-slate-900 dark:text-white mt-6 mb-3">Perks & Benefits</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            ${item.benefits.map(b => `
-              <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700 flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200 font-medium">
-                <i class="fa-solid fa-gift text-amber-500"></i> ${b}
-              </div>
-            `).join('')}
-          </div>
-        </div>
-
-        <!-- Similar Internships -->
-        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 md:p-8 shadow-sm">
-          <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center justify-between">
-            <span>Similar Internship Opportunities</span>
-            <a href="internships.html" class="text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">View All</a>
-          </h2>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="similar-internships-container">
-            <!-- Rendered below -->
-          </div>
-        </div>
-      </div>
-
-      <!-- Right 1 Col: Company Information & Fast Actions -->
-      <div class="space-y-6">
-        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm sticky top-24">
-          <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4 pb-3 border-b border-slate-100 dark:border-slate-700">About the Company</h3>
-          
-          <div class="flex items-center gap-3.5 mb-4">
-            <img src="${item.logo}" alt="${item.company}" class="w-14 h-14 rounded-xl object-cover border border-slate-200 dark:border-slate-700" />
-            <div>
-              <h4 class="font-bold text-slate-900 dark:text-white">${item.companyInfo.name}</h4>
-              <p class="text-xs text-slate-500 dark:text-slate-400">${item.companyInfo.industry}</p>
-            </div>
-          </div>
-
-          <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-6">
-            ${item.companyInfo.about}
-          </p>
-
-          <div class="space-y-3 text-sm text-slate-600 dark:text-slate-300 mb-6">
-            <div class="flex items-center gap-3">
-              <i class="fa-solid fa-users text-indigo-500 w-4"></i>
-              <span>${item.companyInfo.size}</span>
-            </div>
-            <div class="flex items-center gap-3">
-              <i class="fa-solid fa-location-dot text-rose-500 w-4"></i>
-              <span>${item.companyInfo.location}</span>
-            </div>
-            <div class="flex items-center gap-3">
-              <i class="fa-solid fa-envelope text-blue-500 w-4"></i>
-              <a href="mailto:${item.companyInfo.email}" class="text-indigo-600 dark:text-indigo-400 hover:underline">${item.companyInfo.email}</a>
-            </div>
-            <div class="flex items-center gap-3">
-              <i class="fa-solid fa-globe text-emerald-500 w-4"></i>
-              <a href="${item.companyInfo.website}" target="_blank" class="text-indigo-600 dark:text-indigo-400 hover:underline">${item.companyInfo.website.replace('https://', '')}</a>
-            </div>
-          </div>
-
-          <button onclick="openApplyModal('${item.id}')" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-lg shadow-indigo-600/25 transition flex items-center justify-center gap-2 mb-3">
-            <i class="fa-regular fa-paper-plane"></i>
-            <span>Apply for this Role</span>
-          </button>
-
-          <button onclick="navigator.clipboard.writeText(window.location.href); showToast('Link copied to clipboard!', 'info')" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-sm transition flex items-center justify-center gap-2">
-            <i class="fa-regular fa-share-from-square"></i>
-            <span>Share Opportunity</span>
-          </button>
-        </div>
-      </div>
+    <div class="py-20 text-center">
+      <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-600 mb-4"></i>
+      <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">
+        Loading internship details...
+      </p>
     </div>
   `;
 
-  // Render similar internships
-  const similarContainer = document.getElementById('similar-internships-container');
-  if (similarContainer) {
-    const similar = DB.getInternships().filter(i => i.id !== item.id && (i.category === item.category || i.skills.some(s => item.skills.includes(s)))).slice(0, 2);
-    similarContainer.innerHTML = similar.map(s => `
-      <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600 transition flex flex-col justify-between">
-        <div class="flex items-start gap-3 mb-3">
-          <img src="${s.logo}" alt="${s.company}" class="w-10 h-10 rounded-lg object-cover" />
-          <div>
-            <h4 class="font-bold text-sm text-slate-900 dark:text-white line-clamp-1">
-              <a href="internship-details.html?id=${s.id}" class="hover:text-indigo-600">${s.title}</a>
-            </h4>
-            <p class="text-xs text-slate-500 dark:text-slate-400">${s.company} • ${s.location}</p>
-          </div>
+  let item = null;
+
+  /*
+   * IMPORTANT:
+   * Always try the real backend first.
+   * This prevents raw/localStorage Supabase objects from breaking
+   * the Details page.
+   */
+  try {
+    const res = await fetch(`/api/internships/${encodeURIComponent(id)}`);
+
+    if (res.ok) {
+      const apiItem = await res.json();
+
+      if (apiItem && apiItem.id) {
+        item = apiItem;
+      }
+    }
+  } catch (error) {
+    console.warn(
+      'Could not fetch internship details from API:',
+      error
+    );
+  }
+
+  /*
+   * Fallback only if the real API could not return the internship.
+   */
+  if (!item) {
+    const cachedItem = DB.getInternshipById(id);
+
+    if (cachedItem) {
+      item = cachedItem;
+    }
+  }
+
+  /*
+   * Final fallback from the local internship list.
+   */
+  if (!item) {
+    const list = DB.getInternships();
+
+    if (Array.isArray(list)) {
+      item = list.find(
+        internship => String(internship.id) === String(id)
+      );
+    }
+  }
+
+  /*
+   * Internship does not exist.
+   */
+  if (!item) {
+    container.innerHTML = `
+      <div class="p-8 text-center bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+          <i class="fa-solid fa-briefcase text-2xl text-slate-400"></i>
         </div>
-        <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/60 text-xs">
-          <span class="font-bold text-indigo-600 dark:text-indigo-400">${s.stipend}</span>
-          <a href="internship-details.html?id=${s.id}" class="font-semibold text-slate-700 dark:text-slate-300 hover:underline">View &rarr;</a>
-        </div>
+
+        <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-2">
+          Internship Not Found
+        </h3>
+
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">
+          This internship opportunity may have been removed or is no longer available.
+        </p>
+
+        <a
+          href="internships.html"
+          class="inline-flex px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold"
+        >
+          View All Internships
+        </a>
       </div>
-    `).join('');
+    `;
+
+    return;
+  }
+
+  /*
+   * Normalize all fields so the page never crashes
+   * because of missing/null Supabase values.
+   */
+
+  const internshipId = item.id || id;
+
+  const title = item.title || 'Untitled Internship';
+
+  const company =
+    item.company ||
+    item.company_name ||
+    'Company';
+
+  const logo =
+    item.logo ||
+    item.company_logo ||
+    'https://via.placeholder.com/160';
+
+  const category =
+    item.category ||
+    'Software & Development';
+
+  const department =
+    item.department ||
+    'Engineering';
+
+  const location =
+    item.location ||
+    'Dhaka, Bangladesh';
+
+  const workMode =
+    item.workMode ||
+    item.work_mode ||
+    'Hybrid';
+
+  const internshipType =
+    item.type ||
+    item.internship_type ||
+    'Full-time';
+
+  const duration =
+    item.duration ||
+    'Not specified';
+
+  const stipend =
+    item.stipend ||
+    'Not specified';
+
+  const openings =
+    Number(item.openings) ||
+    0;
+
+  const deadline =
+    item.deadline ||
+    'Not specified';
+
+  const description =
+    item.description ||
+    'No description has been provided for this internship.';
+
+  const skills =
+    Array.isArray(item.skills)
+      ? item.skills
+      : [];
+
+  const preferredSkills =
+    Array.isArray(item.preferredSkills)
+      ? item.preferredSkills
+      : Array.isArray(item.preferred_skills)
+        ? item.preferred_skills
+        : [];
+
+  const responsibilities =
+    Array.isArray(item.responsibilities)
+      ? item.responsibilities
+      : [];
+
+  const qualifications =
+    Array.isArray(item.qualifications)
+      ? item.qualifications
+      : [];
+
+  const benefits =
+    Array.isArray(item.benefits)
+      ? item.benefits
+      : [];
+
+  /*
+   * Company information can come from the internship object
+   * or can be unavailable. Never assume it exists.
+   */
+  const companyInfo =
+    item.companyInfo &&
+    typeof item.companyInfo === 'object'
+      ? item.companyInfo
+      : {};
+
+  const companyIndustry =
+    companyInfo.industry ||
+    item.industry ||
+    'Software & Development';
+
+  const companyAbout =
+    companyInfo.about ||
+    item.companyDescription ||
+    item.description ||
+    'Company information is currently available through the internship listing.';
+
+  const companySize =
+    companyInfo.size ||
+    companyInfo.companySize ||
+    item.companySize ||
+    item.company_size ||
+    'Not specified';
+
+  const companyLocation =
+    companyInfo.location ||
+    location;
+
+  const companyEmail =
+    companyInfo.email ||
+    item.hrEmail ||
+    item.hr_email ||
+    '';
+
+  const companyWebsite =
+    companyInfo.website ||
+    item.website ||
+    '';
+
+  const companyWebsiteDisplay =
+    companyWebsite
+      ? companyWebsite
+          .replace(/^https?:\/\//, '')
+          .replace(/\/$/, '')
+      : '';
+
+  const isSaved =
+    DB.isInternshipSaved(internshipId);
+
+  const isStudentPortal =
+    window.location.pathname.includes('/student/');
+
+  /*
+   * Render the complete internship details page.
+   */
+  container.innerHTML = `
+    <!-- Top Hero Card -->
+    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 md:p-8 mb-8 shadow-sm">
+
+      <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+
+        <div class="flex items-center gap-5">
+
+          <img
+            src="${logo}"
+            alt="${company}"
+            class="w-20 h-20 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow-md"
+            onerror="this.src='https://via.placeholder.com/160'"
+          />
+
+          <div>
+
+            <div class="flex items-center gap-2.5 flex-wrap">
+
+              <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
+                ${title}
+              </h1>
+
+              <span class="px-3 py-0.5 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400">
+                ${item.status || 'Active'}
+              </span>
+
+            </div>
+
+            <p class="text-base font-semibold text-slate-600 dark:text-slate-300 mt-1 flex items-center gap-2 flex-wrap">
+
+              <i class="fa-regular fa-building text-indigo-500"></i>
+
+              ${company}
+
+              <span class="text-slate-300 dark:text-slate-600">
+                •
+              </span>
+
+              <span class="text-sm font-normal text-slate-500 dark:text-slate-400">
+
+                <i class="fa-solid fa-location-dot text-rose-500 text-xs mr-1"></i>
+
+                ${location}
+
+                (${workMode})
+
+              </span>
+
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="flex items-center gap-3 w-full md:w-auto">
+
+          <button
+            onclick="handleToggleSave('${internshipId}', this)"
+            class="flex-1 md:flex-initial px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition flex items-center justify-center gap-2 ${
+              isSaved
+                ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200'
+                : ''
+            }"
+          >
+
+            <i class="${
+              isSaved
+                ? 'fa-solid'
+                : 'fa-regular'
+            } fa-bookmark"></i>
+
+            <span>
+              ${isSaved ? 'Saved' : 'Save'}
+            </span>
+
+          </button>
+
+
+          <button
+            onclick="openApplyModal('${internshipId}')"
+            class="flex-1 md:flex-initial px-7 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-md shadow-indigo-600/20 transition flex items-center justify-center gap-2"
+          >
+
+            <i class="fa-regular fa-paper-plane"></i>
+
+            <span>
+              Apply Now
+            </span>
+
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- Quick Metrics Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 pt-8 border-t border-slate-100 dark:border-slate-700/60">
+
+        <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700">
+
+          <span class="text-xs text-slate-500 dark:text-slate-400 font-medium block">
+            Monthly Stipend
+          </span>
+
+          <span class="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+            ${stipend}
+          </span>
+
+        </div>
+
+
+        <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700">
+
+          <span class="text-xs text-slate-500 dark:text-slate-400 font-medium block">
+            Duration
+          </span>
+
+          <span class="text-lg font-bold text-slate-900 dark:text-white">
+            ${duration}
+          </span>
+
+        </div>
+
+
+        <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700">
+
+          <span class="text-xs text-slate-500 dark:text-slate-400 font-medium block">
+            Openings
+          </span>
+
+          <span class="text-lg font-bold text-slate-900 dark:text-white">
+            ${openings} Vacancies
+          </span>
+
+        </div>
+
+
+        <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700">
+
+          <span class="text-xs text-slate-500 dark:text-slate-400 font-medium block">
+            Apply Before
+          </span>
+
+          <span class="text-lg font-bold text-rose-600 dark:text-rose-400">
+            ${deadline}
+          </span>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+
+      <!-- Left Content -->
+      <div class="lg:col-span-2 space-y-8">
+
+
+        <!-- Job Details -->
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 md:p-8 shadow-sm">
+
+          <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+
+            <i class="fa-solid fa-align-left text-indigo-500"></i>
+
+            Role Description
+
+          </h2>
+
+
+          <p class="text-slate-600 dark:text-slate-300 leading-relaxed">
+            ${description}
+          </p>
+
+
+          <!-- Department -->
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white mt-6 mb-3">
+            Department
+          </h3>
+
+          <p class="text-sm text-slate-600 dark:text-slate-300">
+            ${department}
+          </p>
+
+
+          <!-- Internship Type -->
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white mt-6 mb-3">
+            Internship Type
+          </h3>
+
+          <p class="text-sm text-slate-600 dark:text-slate-300">
+            ${internshipType}
+          </p>
+
+
+          <!-- Key Responsibilities -->
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white mt-6 mb-3">
+            Key Responsibilities
+          </h3>
+
+          ${
+            responsibilities.length > 0
+              ? `
+                <ul class="space-y-2.5">
+
+                  ${responsibilities
+                    .map(
+                      r => `
+                        <li class="flex items-start gap-3 text-slate-600 dark:text-slate-300 text-sm">
+
+                          <i class="fa-solid fa-check text-emerald-500 mt-1"></i>
+
+                          <span>
+                            ${r}
+                          </span>
+
+                        </li>
+                      `
+                    )
+                    .join('')}
+
+                </ul>
+              `
+              : `
+                <p class="text-sm text-slate-500 dark:text-slate-400">
+                  No specific responsibilities were provided.
+                </p>
+              `
+          }
+
+
+          <!-- Qualifications -->
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white mt-6 mb-3">
+            Qualifications & Requirements
+          </h3>
+
+          ${
+            qualifications.length > 0
+              ? `
+                <ul class="space-y-2.5">
+
+                  ${qualifications
+                    .map(
+                      q => `
+                        <li class="flex items-start gap-3 text-slate-600 dark:text-slate-300 text-sm">
+
+                          <i class="fa-regular fa-circle-dot text-indigo-500 mt-1"></i>
+
+                          <span>
+                            ${q}
+                          </span>
+
+                        </li>
+                      `
+                    )
+                    .join('')}
+
+                </ul>
+              `
+              : `
+                <p class="text-sm text-slate-500 dark:text-slate-400">
+                  No specific qualifications were provided.
+                </p>
+              `
+          }
+
+
+          <!-- Skills -->
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white mt-6 mb-3">
+            Required & Preferred Skills
+          </h3>
+
+          ${
+            skills.length > 0 || preferredSkills.length > 0
+              ? `
+                <div class="flex flex-wrap gap-2">
+
+                  ${skills
+                    .map(
+                      s => `
+                        <span class="px-3 py-1.5 text-sm font-medium bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 rounded-xl border border-indigo-200 dark:border-indigo-800">
+                          ${s}
+                        </span>
+                      `
+                    )
+                    .join('')}
+
+                  ${preferredSkills
+                    .map(
+                      ps => `
+                        <span class="px-3 py-1.5 text-sm font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl">
+                          ${ps} (Preferred)
+                        </span>
+                      `
+                    )
+                    .join('')}
+
+                </div>
+              `
+              : `
+                <p class="text-sm text-slate-500 dark:text-slate-400">
+                  No skills were specified.
+                </p>
+              `
+          }
+
+
+          <!-- Benefits -->
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white mt-6 mb-3">
+            Perks & Benefits
+          </h3>
+
+          ${
+            benefits.length > 0
+              ? `
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                  ${benefits
+                    .map(
+                      b => `
+                        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700 flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200 font-medium">
+
+                          <i class="fa-solid fa-gift text-amber-500"></i>
+
+                          ${b}
+
+                        </div>
+                      `
+                    )
+                    .join('')}
+
+                </div>
+              `
+              : `
+                <p class="text-sm text-slate-500 dark:text-slate-400">
+                  No benefits were specified.
+                </p>
+              `
+          }
+
+        </div>
+
+
+        <!-- Similar Internships -->
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 md:p-8 shadow-sm">
+
+          <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center justify-between">
+
+            <span>
+              Similar Internship Opportunities
+            </span>
+
+            <a
+              href="internships.html"
+              class="text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+            >
+              View All
+            </a>
+
+          </h2>
+
+
+          <div
+            class="grid grid-cols-1 sm:grid-cols-2 gap-4"
+            id="similar-internships-container"
+          >
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- Company Sidebar -->
+      <div class="space-y-6">
+
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm sticky top-24">
+
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4 pb-3 border-b border-slate-100 dark:border-slate-700">
+            About the Company
+          </h3>
+
+
+          <div class="flex items-center gap-3.5 mb-4">
+
+            <img
+              src="${logo}"
+              alt="${company}"
+              class="w-14 h-14 rounded-xl object-cover border border-slate-200 dark:border-slate-700"
+              onerror="this.src='https://via.placeholder.com/160'"
+            />
+
+            <div>
+
+              <h4 class="font-bold text-slate-900 dark:text-white">
+                ${company}
+              </h4>
+
+              <p class="text-xs text-slate-500 dark:text-slate-400">
+                ${companyIndustry}
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-6">
+            ${companyAbout}
+          </p>
+
+
+          <div class="space-y-3 text-sm text-slate-600 dark:text-slate-300 mb-6">
+
+
+            <div class="flex items-center gap-3">
+
+              <i class="fa-solid fa-users text-indigo-500 w-4"></i>
+
+              <span>
+                ${companySize}
+              </span>
+
+            </div>
+
+
+            <div class="flex items-center gap-3">
+
+              <i class="fa-solid fa-location-dot text-rose-500 w-4"></i>
+
+              <span>
+                ${companyLocation}
+              </span>
+
+            </div>
+
+
+            ${
+              companyEmail
+                ? `
+                  <div class="flex items-center gap-3">
+
+                    <i class="fa-solid fa-envelope text-blue-500 w-4"></i>
+
+                    <a
+                      href="mailto:${companyEmail}"
+                      class="text-indigo-600 dark:text-indigo-400 hover:underline"
+                    >
+                      ${companyEmail}
+                    </a>
+
+                  </div>
+                `
+                : ''
+            }
+
+
+            ${
+              companyWebsite
+                ? `
+                  <div class="flex items-center gap-3">
+
+                    <i class="fa-solid fa-globe text-emerald-500 w-4"></i>
+
+                    <a
+                      href="${companyWebsite}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-indigo-600 dark:text-indigo-400 hover:underline break-all"
+                    >
+                      ${companyWebsiteDisplay}
+                    </a>
+
+                  </div>
+                `
+                : ''
+            }
+
+          </div>
+
+
+          <button
+            onclick="openApplyModal('${internshipId}')"
+            class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-lg shadow-indigo-600/25 transition flex items-center justify-center gap-2 mb-3"
+          >
+
+            <i class="fa-regular fa-paper-plane"></i>
+
+            <span>
+              Apply for this Role
+            </span>
+
+          </button>
+
+
+          <button
+            onclick="navigator.clipboard.writeText(window.location.href).then(() => showToast('Link copied to clipboard!', 'info')).catch(() => showToast('Could not copy link.', 'error'))"
+            class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-sm transition flex items-center justify-center gap-2"
+          >
+
+            <i class="fa-regular fa-share-from-square"></i>
+
+            <span>
+              Share Opportunity
+            </span>
+
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+  `;
+
+
+  /*
+   * Render similar internships.
+   */
+  const similarContainer =
+    document.getElementById('similar-internships-container');
+
+  if (similarContainer) {
+
+    let allInternships = [];
+
+    try {
+      allInternships = await DB.fetchInternships();
+    } catch (error) {
+      console.warn(
+        'Could not fetch internships for similar jobs:',
+        error
+      );
+
+      allInternships = DB.getInternships();
+    }
+
+    if (!Array.isArray(allInternships)) {
+      allInternships = [];
+    }
+
+    const similar = allInternships
+      .filter(
+        internship =>
+          String(internship.id) !== String(internshipId)
+      )
+      .filter(
+        internship =>
+          internship.category === category ||
+          (
+            Array.isArray(internship.skills) &&
+            internship.skills.some(skill =>
+              skills.includes(skill)
+            )
+          )
+      )
+      .slice(0, 2);
+
+
+    if (similar.length === 0) {
+
+      similarContainer.innerHTML = `
+        <p class="text-sm text-slate-500 dark:text-slate-400 col-span-full">
+          No similar internships available right now.
+        </p>
+      `;
+
+    } else {
+
+      similarContainer.innerHTML = similar
+        .map(
+          s => {
+
+            const similarLogo =
+              s.logo ||
+              s.company_logo ||
+              'https://via.placeholder.com/100';
+
+            const similarCompany =
+              s.company ||
+              s.company_name ||
+              'Company';
+
+            const similarWorkMode =
+              s.workMode ||
+              s.work_mode ||
+              'Hybrid';
+
+            const similarLocation =
+              s.location ||
+              'Dhaka, Bangladesh';
+
+            const similarStipend =
+              s.stipend ||
+              'Not specified';
+
+            return `
+              <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600 transition flex flex-col justify-between">
+
+                <div class="flex items-start gap-3 mb-3">
+
+                  <img
+                    src="${similarLogo}"
+                    alt="${similarCompany}"
+                    class="w-10 h-10 rounded-lg object-cover"
+                    onerror="this.src='https://via.placeholder.com/100'"
+                  />
+
+                  <div>
+
+                    <h4 class="font-bold text-sm text-slate-900 dark:text-white line-clamp-1">
+
+                      <a
+                        href="internship-details.html?id=${s.id}"
+                        class="hover:text-indigo-600"
+                      >
+                        ${s.title || 'Internship'}
+                      </a>
+
+                    </h4>
+
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                      ${similarCompany} • ${similarLocation} (${similarWorkMode})
+                    </p>
+
+                  </div>
+
+                </div>
+
+
+                <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/60 text-xs">
+
+                  <span class="font-bold text-indigo-600 dark:text-indigo-400">
+                    ${similarStipend}
+                  </span>
+
+                  <a
+                    href="internship-details.html?id=${s.id}"
+                    class="font-semibold text-slate-700 dark:text-slate-300 hover:underline"
+                  >
+                    View →
+                  </a>
+
+                </div>
+
+              </div>
+            `;
+          }
+        )
+        .join('');
+    }
   }
 }
 
@@ -715,7 +1402,7 @@ function debounce(func, wait) {
  * Open Application Modal and bind submission
  */
 window.openApplyModal = function(id) {
-  const auth = DB.getAuthUser();
+  const auth = DB.getAuth();
   const isStudentPortal = window.location.pathname.includes('/student/');
   const loginUrl = isStudentPortal ? 'login.html' : 'pages/student/login.html';
 
@@ -784,15 +1471,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const student = DB.getStudentProfile();
-      const newApp = {
-        internshipId: internshipId,
-        coverLetter: coverLetter,
-        portfolioLink: portfolio,
-        resumeName: student.resume?.fileName || "Mehedi_Hasan_CSE_Resume_2026.pdf"
-      };
+      const newApp = { 
+  internshipId: internshipId,
+  studentId: student.id,
+  coverLetter: coverLetter, 
+  portfolioLink: portfolio, 
+  resumeName: student.resume?.fileName || "Mehedi_Hasan_CSE_Resume_2026.pdf" 
+};
 
       try {
-        const result = await DB.applyForInternship(internshipId, newApp);
+        const result = await DB.applyForInternship(newApp.internshipId, newApp);
         closeModal('apply-internship-modal');
         showToast('Application submitted successfully with your attached profile & resume!', 'success');
 
